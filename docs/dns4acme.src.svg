@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1306"
+   height="560"
+   viewBox="0 0 345.54583 148.16667"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="dns4acme.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.914906"
+     inkscape:cx="380.91345"
+     inkscape:cy="201.11356"
+     inkscape:window-width="1920"
+     inkscape:window-height="2088"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g5871"
+       transform="translate(-0.66145664,-0.66145664)">
+      <rect
+         style="fill:#4cae4f;fill-opacity:1;stroke-width:2.45603"
+         id="rect2966"
+         width="150"
+         height="36"
+         x="5.6979151"
+         y="13.918501" />
+      <rect
+         style="fill:none;fill-opacity:1;stroke:#4cae4f;stroke-width:1.32292;stroke-dasharray:none;stroke-opacity:1"
+         id="rect2966-3"
+         width="158.75"
+         height="52.916668"
+         x="1.322915"
+         y="1.3229166"
+         rx="1.5875" />
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="49.721317"
+         y="10.384034"
+         id="text4066"><tspan
+           sodipodi:role="line"
+           id="tspan4064"
+           style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+           x="49.721317"
+           y="10.384034">ns1.yourprovider.com</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+       x="61.35886"
+       y="33.63802"
+       id="text4066-7"><tspan
+         sodipodi:role="line"
+         id="tspan4064-5"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+         x="61.35886"
+         y="33.63802">example.com</tspan></text>
+    <g
+       id="g6005"
+       transform="translate(-4.0690105e-6,-0.71467482)">
+      <rect
+         style="fill:#4cae4f;fill-opacity:1;stroke-width:2.32575"
+         id="rect2966-0"
+         width="134.50859"
+         height="36"
+         x="211.03725"
+         y="13.918501" />
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="258.80103"
+         y="29.415634"
+         id="text4066-7-9"><tspan
+           sodipodi:role="line"
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+           x="258.80103"
+           y="29.415634"
+           id="tspan5537">ACME service</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="254.20009"
+         y="37.98399"
+         id="text4066-7-9-6"><tspan
+           sodipodi:role="line"
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+           x="254.20009"
+           y="37.98399"
+           id="tspan5537-0">e.g. Let's Encrypt</tspan></text>
+    </g>
+    <g
+       id="g5879"
+       transform="translate(-0.66145664,0.26562462)">
+      <rect
+         style="fill:none;fill-opacity:1;stroke:#4cae4f;stroke-width:1.32292;stroke-dasharray:none;stroke-opacity:1"
+         id="rect2966-3-6"
+         width="158.75"
+         height="52.916668"
+         x="1.322915"
+         y="94.322914"
+         rx="1.5875" />
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="45.561363"
+         y="143.61807"
+         id="text4066-9"><tspan
+           sodipodi:role="line"
+           id="tspan4064-1"
+           style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+           x="45.561363"
+           y="143.61807">dns4acme.example.com</tspan></text>
+      <rect
+         style="fill:#4cae4f;fill-opacity:1;stroke-width:2.45603"
+         id="rect2966-35"
+         width="150"
+         height="36"
+         x="5.6979151"
+         y="99.033409" />
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="35.214012"
+         y="118.75294"
+         id="text4066-7-6"><tspan
+           sodipodi:role="line"
+           id="tspan4064-5-2"
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+           x="35.214012"
+           y="118.75294">_acme-challenge.example.com</tspan></text>
+    </g>
+    <g
+       id="g5646-2"
+       transform="matrix(1,0,0,-1,197.18722,149.28064)">
+      <rect
+         style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         id="rect5309-5"
+         width="2.6458333"
+         height="47.625"
+         x="79.375"
+         y="50.1576"
+         rx="1.5875" />
+      <path
+         sodipodi:type="star"
+         style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         id="path5415-4"
+         inkscape:flatsided="false"
+         sodipodi:sides="3"
+         sodipodi:cx="61.915043"
+         sodipodi:cy="77.316887"
+         sodipodi:r1="8.41891"
+         sodipodi:r2="4.2094545"
+         sodipodi:arg1="1.5707963"
+         sodipodi:arg2="2.6179939"
+         inkscape:rounded="0"
+         inkscape:randomized="0"
+         d="m 61.915043,85.735797 -3.645495,-6.314183 -3.645495,-6.314182 7.29099,0 7.29099,0 -3.645496,6.314182 z"
+         inkscape:transform-center-y="2.1047264"
+         transform="translate(18.782872,13.387247)" />
+    </g>
+    <g
+       id="g5646-2-3"
+       transform="matrix(0,-1,-1,0,258.94839,198.34434)">
+      <rect
+         style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.70316;stroke-dasharray:none;stroke-opacity:1"
+         id="rect5309-5-0"
+         width="2.6458333"
+         height="49.711418"
+         x="79.375"
+         y="48.071182"
+         rx="1.5875" />
+      <path
+         sodipodi:type="star"
+         style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         id="path5415-4-7"
+         inkscape:flatsided="false"
+         sodipodi:sides="3"
+         sodipodi:cx="61.915043"
+         sodipodi:cy="77.316887"
+         sodipodi:r1="8.41891"
+         sodipodi:r2="4.2094545"
+         sodipodi:arg1="1.5707963"
+         sodipodi:arg2="2.6179939"
+         inkscape:rounded="0"
+         inkscape:randomized="0"
+         d="m 61.915043,85.735797 -3.645495,-6.314183 -3.645495,-6.314182 7.29099,0 7.29099,0 -3.645496,6.314182 z"
+         inkscape:transform-center-y="2.1047264"
+         transform="translate(18.782872,13.387247)" />
+    </g>
+    <g
+       id="g5893"
+       transform="translate(-0.64562434)">
+      <g
+         id="g5646">
+        <rect
+           style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.66851;stroke-dasharray:none;stroke-opacity:1"
+           id="rect5309"
+           width="2.6458333"
+           height="48.445"
+           x="79.375"
+           y="49.337601"
+           rx="1.5875" />
+        <path
+           sodipodi:type="star"
+           style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+           id="path5415"
+           inkscape:flatsided="false"
+           sodipodi:sides="3"
+           sodipodi:cx="61.915043"
+           sodipodi:cy="77.316887"
+           sodipodi:r1="8.41891"
+           sodipodi:r2="4.2094545"
+           sodipodi:arg1="1.5707963"
+           sodipodi:arg2="2.6179939"
+           inkscape:rounded="0"
+           inkscape:randomized="0"
+           d="m 61.915043,85.735797 -3.645495,-6.314183 -3.645495,-6.314182 7.29099,0 7.29099,0 -3.645496,6.314182 z"
+           inkscape:transform-center-y="2.1047264"
+           transform="translate(18.782872,13.591737)" />
+      </g>
+      <g
+         id="g5884">
+        <rect
+           style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.45127;stroke-dasharray:none;stroke-opacity:1"
+           id="rect5417"
+           width="14.650146"
+           height="7.8918037"
+           x="73.35701"
+           y="67.227692"
+           rx="1.5875" />
+        <text
+           xml:space="preserve"
+           style="font-size:6.35px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+           x="74.171577"
+           y="73.602333"
+           id="text5421"><tspan
+             sodipodi:role="line"
+             id="tspan5419"
+             style="font-size:6.35px;fill:#ffffff;fill-opacity:1;stroke-width:2.64583"
+             x="74.171577"
+             y="73.602333">IN NS</tspan></text>
+      </g>
+    </g>
+    <g
+       id="g5899">
+      <rect
+         style="fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:4.21842;stroke-dasharray:none;stroke-opacity:1"
+         id="rect5417-7"
+         width="23.042463"
+         height="14.85959"
+         x="180.20758"
+         y="110.52333"
+         rx="2.4968972" />
+      <text
+         xml:space="preserve"
+         style="font-size:6.35px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="191.55908"
+         y="116.44205"
+         id="text5421-4"><tspan
+           sodipodi:role="line"
+           id="tspan5419-4"
+           style="font-size:6.35px;text-align:center;text-anchor:middle;fill:#ffffff;fill-opacity:1;stroke-width:2.64583"
+           x="191.55908"
+           y="116.44205">DNS</tspan><tspan
+           sodipodi:role="line"
+           style="font-size:6.35px;text-align:center;text-anchor:middle;fill:#ffffff;fill-opacity:1;stroke-width:2.64583"
+           x="191.55908"
+           y="124.37955"
+           id="tspan5765">UPDATES</tspan></text>
+    </g>
+    <g
+       id="g6020"
+       transform="translate(-4.0690105e-6,0.35368809)">
+      <rect
+         style="fill:#4cae4f;fill-opacity:1;stroke-width:2.32575"
+         id="rect2966-35-7"
+         width="134.50859"
+         height="36"
+         x="211.03725"
+         y="99.033409" />
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="261.14368"
+         y="115.66977"
+         id="text4066-7-9-9"><tspan
+           sodipodi:role="line"
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+           x="261.14368"
+           y="115.66977"
+           id="tspan5537-3">ACME client</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:7.05556px;font-family:Impact;-inkscape-font-specification:Impact;fill:#7c4dff;fill-opacity:1;stroke:none;stroke-width:2.64583;stroke-dasharray:none;stroke-opacity:1"
+         x="261.35556"
+         y="124.23814"
+         id="text4066-7-9-6-7"><tspan
+           sodipodi:role="line"
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.64583"
+           x="261.35556"
+           y="124.23814"
+           id="tspan5537-0-4">e.g. Certbot</tspan></text>
+    </g>
+  </g>
+</svg>

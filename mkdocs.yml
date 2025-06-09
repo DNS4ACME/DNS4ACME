@@ -1,0 +1,54 @@
+site_name: DNS4ACME
+site_url: https://dns4acme.github.io/
+repo_url: https://github.com/DNS4ACME/DNS4ACME/
+theme:
+  name: material
+  logo: logo.svg
+  favicon: logo.svg
+  palette:
+    primary: green
+    accent: deep purple
+  font: false
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.autohide
+    - search.suggest
+    - search.highlight
+    - content.code.annotate
+  language: en
+  include_search_page: false
+  search_index_only: 'false'
+  icon:
+    annotation: material/arrow-right-circle
+extra_css:
+- "custom.css"
+extra:
+  generator: false
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - meta
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      permalink: True
+      separator: "-"
+plugins:
+  - privacy
+  - search
+  - awesome-pages
+  - macros
+

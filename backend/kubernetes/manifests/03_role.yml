@@ -1,0 +1,9 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dns4acme
+  name: dns4acme
+rules:
+  - apiGroups: ["dns4acme.github.io"]
+    resources: ["domains"]
+    verbs: ["get", "patch"]

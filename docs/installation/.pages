@@ -1,0 +1,9 @@
+title: Installation
+nav:
+- Overview: index.md
+- Platforms:
+  - Docker/Podman: docker.md
+  - Kubernetes: kubernetes.md
+  - Bare Metal/VM: metal.md
+- Next steps:
+  - Setting up DNS records: dns-records.md

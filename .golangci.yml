@@ -1,0 +1,65 @@
+version: "2"
+linters:
+  enable:
+    - bodyclose
+    - contextcheck
+    - depguard
+    - errorlint
+    - gocritic
+    - gosec
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - reassign
+    - unconvert
+    - unparam
+    - wastedassign
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+  settings:
+    depguard:
+      rules:
+        core:
+          files:
+            - "**/core/*.go"
+          allow:
+            - $gostd
+            - github.com/dns4acme/dns4acme$
+            - github.com/dns4acme/dns4acme/
+            - golang.org/x/sync/errgroup
+            - github.com/miekg/dns
+        kubernetes:
+          files:
+            - "**/kubernetes/*.go"
+          allow:
+            - $gostd
+            - github.com/dns4acme/dns4acme$
+            - github.com/dns4acme/dns4acme/
+            - golang.org/x/sync/errgroup
+            - k8s.io/
+        main:
+          files:
+            - "!**/core/*.go"
+            - "!**/kubernetes/*.go"
+          allow:
+            - $gostd
+            - github.com/dns4acme/dns4acme$
+            - github.com/dns4acme/dns4acme/
+            - golang.org/x/sync/errgroup
+formatters:
+  exclusions:
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dns4acme
+  namespace: dns4acme # Customize this namespace
+subjects:
+  - kind: ServiceAccount
+    name: dns4acme
+    namespace: dns4acme
+roleRef:
+  kind: Role
+  name: dns4acme
+  apiGroup: rbac.authorization.k8s.io

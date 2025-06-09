@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+project_name: DNS4ACME
+# Binary builds:
+builds:
+  - id: "binary"
+    main: ./cmd/dns4acme
+    binary: dns4acme
+    env:
+      - CGO_ENABLED=0
+    tags:
+      - kubernetes
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+# Arch-dependent images:
+dockers:
+  - use: buildx
+    goarch: amd64
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    image_templates:
+      - "ghcr.io/dns4acme/dns4acme:{{ .Version }}-amd64"
+      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-amd64"
+      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}-amd64"
+  - use: buildx
+    goarch: arm64
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/arm64"
+    image_templates:
+      - "ghcr.io/dns4acme/dns4acme:{{ .Version }}-arm64"
+      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-arm64"
+      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}-arm64"
+# Multi-arch images:
+docker_manifests:
+  - name_template: ghcr.io/dns4acme/dns4acme:{{ .Version }}
+    image_templates:
+      - ghcr.io/dns4acme/dns4acme:{{ .Version }}-amd64
+      - ghcr.io/dns4acme/dns4acme:{{ .Version }}-arm64
+  - name_template: ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}
+    image_templates:
+      - ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-amd64
+      - ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-arm64
+  - name_template: ghcr.io/dns4acme/dns4acme:{{ .Major }}
+    image_templates:
+      - ghcr.io/dns4acme/dns4acme:{{ .Major }}-amd64
+      - ghcr.io/dns4acme/dns4acme:{{ .Major }}-arm64
