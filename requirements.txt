@@ -1,0 +1,6 @@
+mkdocs==1.6.*
+mkdocs-material==9.*
+mkdocs-macros-plugin
+mkdocs-redirects
+mkdocs-awesome-pages-plugin
+mkdocs-mermaid2-plugin
