@@ -24,6 +24,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
     image_templates:
+      - "ghcr.io/dns4acme/dns4acme:latest-amd64"
       - "ghcr.io/dns4acme/dns4acme:{{ .Version }}-amd64"
       - "ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-amd64"
       - "ghcr.io/dns4acme/dns4acme:{{ .Major }}-amd64"
@@ -33,11 +34,16 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm64"
     image_templates:
+      - "ghcr.io/dns4acme/dns4acme:latest-arm64"
       - "ghcr.io/dns4acme/dns4acme:{{ .Version }}-arm64"
       - "ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-arm64"
       - "ghcr.io/dns4acme/dns4acme:{{ .Major }}-arm64"
 # Multi-arch images:
 docker_manifests:
+  - name_template: ghcr.io/dns4acme/dns4acme:latest
+    image_templates:
+      - ghcr.io/dns4acme/dns4acme:latest-amd64
+      - ghcr.io/dns4acme/dns4acme:latest-arm64
   - name_template: ghcr.io/dns4acme/dns4acme:{{ .Version }}
     image_templates:
       - ghcr.io/dns4acme/dns4acme:{{ .Version }}-amd64
