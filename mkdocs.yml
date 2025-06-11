@@ -6,8 +6,8 @@ theme:
   logo: logo.svg
   favicon: logo.svg
   palette:
-    primary: green
-    accent: deep purple
+    primary: black
+    accent: green
   font: false
   features:
     - navigation.tabs
