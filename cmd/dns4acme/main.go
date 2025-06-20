@@ -31,7 +31,7 @@ func main() {
 	if err := configParser.ApplyCMD(os.Args); err != nil {
 		fatal(logger, err)
 	}
-	srv, err := dns4acme2.New(cfg, os.Stdout)
+	srv, err := dns4acme2.New(context.Background(), cfg, os.Stdout)
 	if err != nil {
 		fatal(logger, err)
 	}

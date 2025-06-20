@@ -67,9 +67,6 @@ func (s server) Start(ctx context.Context) (RunningServer, error) {
 					defer lock.Unlock()
 					close(started)
 				},
-				MsgAcceptFunc: func(dh dns.Header) dns.MsgAcceptAction {
-					return dns.MsgAccept
-				},
 				MsgInvalidFunc: func(m []byte, err error) {
 					s.logger.Debug("Invalid DNS message", slog.String("error", err.Error()), slog.String("m", string(m)))
 				},

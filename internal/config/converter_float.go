@@ -39,9 +39,8 @@ func (f floatConverter) convert(sourceValue reflect.Value, targetValue reflect.V
 			if errors.Is(err, strconv.ErrRange) {
 				if str[0] == '-' {
 					return ErrCannotConvertValue.WithAttr(slog.String("source", sourceValue.Kind().String())).WithAttr(slog.String("target", targetValue.Kind().String())).Wrap(ErrValueTooSmall)
-				} else {
-					return ErrCannotConvertValue.WithAttr(slog.String("source", sourceValue.Kind().String())).WithAttr(slog.String("target", targetValue.Kind().String())).Wrap(ErrValueTooLarge)
 				}
+				return ErrCannotConvertValue.WithAttr(slog.String("source", sourceValue.Kind().String())).WithAttr(slog.String("target", targetValue.Kind().String())).Wrap(ErrValueTooLarge)
 			}
 			return ErrCannotConvertValue.WithAttr(slog.String("source", sourceValue.Kind().String())).WithAttr(slog.String("target", targetValue.Kind().String())).Wrap(err)
 		}

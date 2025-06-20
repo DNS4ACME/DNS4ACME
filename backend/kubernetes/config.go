@@ -1,12 +1,13 @@
 package kubernetes
 
 import (
+	"context"
 	"encoding/base64"
+	"fmt"
 	"github.com/dns4acme/dns4acme/backend"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -37,13 +38,16 @@ type Config struct {
 	QPS     float32       `config:"qps" default:"5" description:"Maximum QPS to use for Kubernetes API requests."`
 	Burst   int           `config:"burst" default:"10" description:"Maximum burst to use for Kubernetes API requests."`
 	Timeout time.Duration `config:"timeout" default:"5s" description:"Maximum time to wait for a response from the Kubernetes API."`
+
+	Logger *slog.Logger `json:"-"`
 }
 
-func (c Config) Build() (backend.Provider, error) {
-	return c.BuildFull()
+func (c Config) Build(ctx context.Context) (backend.Provider, error) {
+	return c.BuildFull(ctx)
 }
-func (c Config) BuildExtended() (backend.ExtendedProvider, error) {
-	return c.BuildFull()
+
+func (c Config) BuildExtended(ctx context.Context) (backend.ExtendedProvider, error) {
+	return c.BuildFull(ctx)
 }
 
 func decodeCertData(c []byte) ([]byte, error) {
@@ -59,29 +63,22 @@ func decodeCertData(c []byte) ([]byte, error) {
 	return data, err
 }
 
-func (c Config) BuildFull() (Provider, error) {
+func (c Config) BuildFull(ctx context.Context) (Provider, error) {
 	certData, err := decodeCertData(c.CertData)
 	if err != nil {
-		// TODO better error handling
-		return nil, err
+		return nil, backend.ErrConfiguration.Wrap(fmt.Errorf("failed to decode certificate data: %w", err))
 	}
 	keyData, err := decodeCertData(c.KeyData)
 	if err != nil {
-		// TODO better error handling
-		return nil, err
+		return nil, backend.ErrConfiguration.Wrap(fmt.Errorf("failed to decode key data: %w", err))
 	}
 	caData, err := decodeCertData(c.CAData)
 	if err != nil {
-		// TODO better error handling
-		return nil, err
+		return nil, backend.ErrConfiguration.Wrap(fmt.Errorf("failed to decode CA cert data: %w", err))
 	}
 	cfg := restclient.Config{
-		Host:    c.Host,
-		APIPath: c.APIPath,
-		ContentConfig: restclient.ContentConfig{
-			GroupVersion:         &schema.GroupVersion{Group: groupName, Version: groupVersion},
-			NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
-		},
+		Host:            c.Host,
+		APIPath:         "/" + strings.Trim(strings.Trim(c.BasePath, "/")+"/apis", "/"),
 		Username:        c.Username,
 		Password:        c.Password,
 		BearerToken:     c.BearerToken,
@@ -101,21 +98,26 @@ func (c Config) BuildFull() (Provider, error) {
 		Burst:     c.Burst,
 		Timeout:   c.Timeout,
 	}
-
-	cli, err := kubernetes.NewForConfig(&cfg)
-	if err != nil {
-		return nil, err
+	logger := c.Logger
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
 	}
-
-	restClient, err := restclient.UnversionedRESTClientFor(&cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &provider{
-		absPathPrefix: strings.Split(strings.Trim(strings.Trim(c.BasePath, "/")+"/apis", "/"), "/"),
+	logger = logger.WithGroup("kubernetes")
+	p := &provider{
 		config:        c,
-		cli:           cli,
-		restClient:    restClient,
-	}, nil
+		logger:        logger,
+		domains:       nil,
+		dynamicClient: nil,
+	}
+	cfg.WarningHandlerWithContext = p
+	p.dynamicClient, err = dynamic.NewForConfig(&cfg)
+	if err != nil {
+		return nil, backend.ErrConfiguration.Wrap(err)
+	}
+	p.domains, err = newObjectCRUD[*domain](ctx, p.dynamicClient, c.Namespace, kind, groupVersionResource, logger)
+	if err != nil {
+		return nil, backend.ErrConfiguration.Wrap(err)
+	}
+
+	return p, nil
 }

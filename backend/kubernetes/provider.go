@@ -2,15 +2,9 @@ package kubernetes
 
 import (
 	"context"
-	_ "embed"
-	"encoding/json"
-	"errors"
 	"github.com/dns4acme/dns4acme/backend"
-	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"log/slog"
 )
 
@@ -19,137 +13,60 @@ type Provider interface {
 	backend.ExtendedProvider
 }
 
-func processKubernetesError(err error, domainName string) error {
-	var kubeError *kubeerrors.StatusError
-	if !errors.As(err, &kubeError) {
-		return err
-	}
-	return backend.ErrBackendRequestFailed.Wrap(err).
-		WithAttr(slog.String("domain", domainName)).
-		WithAttr(slog.String("reason", string(kubeError.Status().Reason))).
-		WithAttr(slog.String("status", kubeError.Status().Status))
-}
-
 type provider struct {
 	config        Config
-	absPathPrefix []string
-	cli           *kubernetes.Clientset
-	restClient    *restclient.RESTClient
+	domains       objectCRUD[*domain]
+	logger        *slog.Logger
+	dynamicClient *dynamic.DynamicClient
+}
+
+func (p provider) HandleWarningHeaderWithContext(ctx context.Context, code int, agent string, text string) {
+	p.logger.WarnContext(ctx, "Kubernetes API warning header", slog.Int("code", code), slog.String("agent", agent), slog.String("text", text))
 }
 
 func (p provider) Create(ctx context.Context, domainName string, updateKey string) error {
-	domainObj := Domain{
-		TypeMeta: metav1.TypeMeta{
+	p.logger.InfoContext(ctx, "Creating domain", slog.String("domain", domainName))
+	return p.domains.create(ctx, &domain{
+		TypeMeta: v1.TypeMeta{
 			Kind:       kind,
-			APIVersion: groupName + "/" + groupVersion,
+			APIVersion: groupVersion.String(),
 		},
-		ObjectMeta: metav1.ObjectMeta{
+		Metadata: v1.ObjectMeta{
 			Name: domainName,
 		},
-		Spec: backend.ProviderResponse{
+		Spec: domainSpec{
 			UpdateKey: updateKey,
+			Serial:    0,
 		},
-	}
-	domainData, err := json.Marshal(domainObj)
-	if err != nil {
-		return backend.ErrBackendRequestFailed.Wrap(err)
-	}
-	if err := p.restClient.Post().
-		AbsPath(p.getDomainsAbsPath(ctx)...).
-		Body(domainData).
-		Do(ctx).
-		Error(); err != nil {
-		// TODO handle non-existent case
-		return processKubernetesError(err, domainName)
-	}
-	return nil
+	})
 }
 
 func (p provider) Delete(ctx context.Context, domainName string) error {
-	if err := p.restClient.Delete().
-		AbsPath(p.getDomainAbsPath(ctx, domainName)...).
-		Do(ctx).
-		Error(); err != nil {
-		// TODO handle non-existent case
-		return processKubernetesError(err, domainName)
-	}
-	return nil
+	p.logger.InfoContext(ctx, "Deleting domain", slog.String("domain", domainName))
+	return p.domains.delete(ctx, domainName)
 }
 
 func (p provider) Get(ctx context.Context, domainName string) (backend.ProviderResponse, error) {
-	result := &Domain{}
-	err := p.restClient.Get().
-		AbsPath(p.getDomainAbsPath(ctx, domainName)...).
-		Do(ctx).
-		Into(result)
+	res, err := p.domains.get(ctx, domainName)
 	if err != nil {
-		return backend.ProviderResponse{}, processKubernetesError(err, domainName)
+		return backend.ProviderResponse{}, err
 	}
-	return result.Spec, nil
+	return backend.ProviderResponse{
+		UpdateKey:            res.Spec.UpdateKey,
+		Serial:               res.Spec.Serial,
+		ACMEChallengeAnswers: res.Spec.ACMEChallengeAnswers,
+	}, nil
 }
 
 func (p provider) Set(ctx context.Context, domainName string, acmeChallengeAnswers []string) error {
-	original, err := p.Get(ctx, domainName)
-	if err != nil {
-		return err
-	}
-
-	result := &Domain{}
-	type Patch struct {
-		Op    string `json:"op"`
-		Path  string `json:"path"`
-		Value any    `json:"value"`
-	}
-	changes := []Patch{
-		{
-			Op:   "replace",
-			Path: "/spec/serial",
-			// TODO there is a possible race condition here where the serial doesn't change. Is there a better way
-			//      to update this value?
-			Value: original.Serial + 1,
-		},
-		{
-			Op:    "replace",
-			Path:  "/spec/acme_challenge_answers",
-			Value: acmeChallengeAnswers,
-		},
-	}
-	encodedChanges, err := json.Marshal(changes)
-	if err != nil {
-		return backend.ErrBackendRequestFailed.Wrap(err).WithAttr(slog.String("domain", domainName))
-	}
-
-	if err := p.restClient.Patch(types.JSONPatchType).
-		AbsPath(p.getDomainAbsPath(ctx, domainName)...).
-		Body(encodedChanges).
-		Do(ctx).
-		Into(result); err != nil {
-		return processKubernetesError(err, domainName)
-	}
-	return nil
+	p.logger.InfoContext(ctx, "Updating domain", slog.String("domain", domainName))
+	return p.domains.set(ctx, domainName, func(object *domain) error {
+		object.Spec.ACMEChallengeAnswers = acmeChallengeAnswers
+		object.Spec.Serial++
+		return nil
+	})
 }
 
-func (p provider) getDomainAbsPath(_ context.Context, domainName string) []string {
-	l := len(p.absPathPrefix)
-	path := make([]string, l+6)
-	copy(path, p.absPathPrefix)
-	path[l] = groupName
-	path[l+1] = groupVersion
-	path[l+2] = "namespaces"
-	path[l+3] = p.config.Namespace
-	path[l+4] = "domains"
-	path[l+5] = domainName
-	return path
-}
-
-func (p provider) getDomainsAbsPath(_ context.Context) []string {
-	l := len(p.absPathPrefix)
-	path := make([]string, l+5)
-	copy(path, p.absPathPrefix)
-	path[l] = groupName
-	path[l+1] = groupVersion
-	path[l+2] = "namespaces"
-	path[l+3] = p.config.Namespace
-	path[l+4] = "domains"
-	return path
+func (p provider) Close(ctx context.Context) error {
+	return p.domains.close(ctx)
 }
