@@ -59,6 +59,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dns4acme
+  namespace: dns4acme
+  labels:
+    app.kubernetes.io/name: dns4acme
 spec:
   selector:
     app.kubernetes.io/name: dns4acme
@@ -143,6 +146,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dns4acme
+  namespace: dns4acme
+  labels:
+    app.kubernetes.io/name: dns4acme
 spec:
   type: NodePort
   selector:
