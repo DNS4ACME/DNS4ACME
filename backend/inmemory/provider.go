@@ -37,8 +37,12 @@ func (p *provider) Set(_ context.Context, domain string, acmeChallengeAnswers []
 		return backend.ErrDomainNotInBackend
 	}
 	response := p.domains[domain]
-	response.Serial += 1
+	response.Serial++
 	response.ACMEChallengeAnswers = acmeChallengeAnswers
 	p.domains[domain] = response
+	return nil
+}
+
+func (p *provider) Close(_ context.Context) error {
 	return nil
 }

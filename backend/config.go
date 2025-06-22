@@ -1,10 +1,12 @@
 package backend
 
+import "context"
+
 type ExtendedConfig interface {
 	Config
-	BuildExtended() (ExtendedProvider, error)
+	BuildExtended(ctx context.Context) (ExtendedProvider, error)
 }
 
 type Config interface {
-	Build() (Provider, error)
+	Build(ctx context.Context) (Provider, error)
 }

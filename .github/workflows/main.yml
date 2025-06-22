@@ -40,6 +40,11 @@ jobs:
         run: |
           set -euo pipefail
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
+          CHECKSUM="$(sha256sum kind)"
+          if [ "${CHECKSUM}" != "c72eda46430f065fb45c5f70e7c957cc9209402ef309294821978677c8fb3284  kind" ]; then
+            echo "Invalid checksum: ${CHECKSUM}"
+            exit 1
+          fi
           chmod +x ./kind
           sudo mv kind /usr/local/bin
       - name: Set up KinD cluster
@@ -48,8 +53,8 @@ jobs:
       - name: Import manifests
         run: |
           set -euo pipefail
-          for i in backend/kubernetes/manifests/*.yml; do
-            kubectl apply -f $i
+          for MANIFEST in backend/kubernetes/manifests/*.yml; do
+            kubectl apply -f "${MANIFEST}"
           done
       - name: Run tests
         run: |

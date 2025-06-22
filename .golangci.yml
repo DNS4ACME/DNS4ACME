@@ -6,6 +6,7 @@ linters:
     - depguard
     - errorlint
     - gocritic
+    - godot
     - gosec
     - nilerr
     - nilnil
@@ -14,6 +15,9 @@ linters:
     - prealloc
     - predeclared
     - reassign
+    - revive
+    - staticcheck
+    - sloglint
     - unconvert
     - unparam
     - wastedassign
@@ -41,17 +45,20 @@ linters:
             - github.com/miekg/dns
         kubernetes:
           files:
-            - "**/kubernetes/*.go"
+            - "**/backend/kubernetes/*.go"
+            - "**/backend/kubernetes/internal/crd/*.go"
           allow:
             - $gostd
             - github.com/dns4acme/dns4acme$
             - github.com/dns4acme/dns4acme/
             - golang.org/x/sync/errgroup
             - k8s.io/
+            - github.com/go-logr/logr
         main:
           files:
             - "!**/core/*.go"
-            - "!**/kubernetes/*.go"
+            - "!**/backend/kubernetes/*.go"
+            - "!**/backend/kubernetes/internal/crd/*.go"
           allow:
             - $gostd
             - github.com/dns4acme/dns4acme$

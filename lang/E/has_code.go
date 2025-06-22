@@ -1,4 +1,4 @@
-package E
+package E //nolint:revive //We want this to be called E
 
 type unwrappable interface {
 	Unwrap() error
