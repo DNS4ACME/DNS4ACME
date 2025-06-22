@@ -6,4 +6,4 @@ metadata:
 rules:
   - apiGroups: ["dns4acme.github.io"]
     resources: ["domains"]
-    verbs: ["get", "patch"]
+    verbs: ["*"]

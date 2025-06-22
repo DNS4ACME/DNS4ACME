@@ -80,6 +80,74 @@ Once deployed, the `status` field of the Service will provide you with the exter
 
 ---
 
+## Deploying using a `DaemonSet` and host networking
+
+This method runs DNS4ACME as a DaemonSet on a specific set of nodes and uses privileged host network access to bind to port 53. The main tradeoff for this method is that the DNS4ACME pod runs on the host network and will need to bind to port 53, so DNS4ACME runs in somewhat of a privileged context. DNS4ACME also won't have access to the pod network.
+
+This method only needs a DaemonSet:
+
+<details><summary>daemonset.yaml</summary>
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dns4acme
+  namespace: dns4acme
+  labels:
+    app.kubernetes.io/name: dns4acme
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dns4acme
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dns4acme
+    spec:
+      # Schedule pods on control plane nodes only:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+      # Tolerate running on control plane nodes:
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      # Enable host networking:
+      hostNetwork: true
+      containers:
+        - name: dns4acme
+          image: ghcr.io/dns4acme/dns4acme
+          env: # Customize this to include your desired configuration
+          - name: DNS4ACME_LISTEN
+            value: 0.0.0.0:53 # This is required
+          securityContext:
+            capabilities:
+              add:
+              - CAP_NET_BIND_SERVICE # This is needed to bind to port 53
+          ports:
+            - containerPort: 53
+              protocol: UDP
+            - containerPort: 53
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: 53
+```
+</details>
+
+!!! warning
+    In this mode DNS4ACME runs on the host's network and does not have direct access to the pod network. Depending on where your backend is located, you may need to provide *external* access parameters, such as `127.0.0.1:6443` for the Kubernetes API server. 
+
+---
+
 ## Deploying using a `DaemonSet` and a `NodePort`
 
 This mechanism starts the DNS4ACME daemon on every node (or optionally on the control plane nodes) and uses a Node Port to get the DNS traffic to DNS4ACME.
