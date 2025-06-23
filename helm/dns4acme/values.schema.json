@@ -1,0 +1,124 @@
+{
+    "type": "object",
+    "required": [
+        "installation_method",
+        "ingress",
+        "nameservers",
+        "backend"
+    ],
+    "properties": {
+        "installation_method": {
+            "title": "Installation method",
+            "description": "How to install DNS4ACME in the Kubernetes cluster. You can pick between 'deployment' and 'daemonset'.",
+            "type": "string",
+            "enum": [
+                "deployment",
+                "daemonset"
+            ]
+        },
+        "ingress": {
+            "title": "Ingress",
+            "description": "How to get external traffic to DNS4ACME.",
+            "oneOf": [
+                {
+                    "type": "object",
+                    "required": ["method"],
+                    "properties": {
+                        "method": {
+                            "type": "string",
+                            "const": "loadbalancer"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": ["method"],
+                    "properties": {
+                        "method": {
+                            "type": "string",
+                            "const": "hostnet"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": ["method", "node_port"],
+                    "properties": {
+                        "method": {
+                            "type": "string",
+                            "const": "nodeport"
+                        },
+                        "node_port": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 65535,
+                            "default": 30053
+                        }
+                    }
+                }
+            ]
+        },
+        "image": {
+            "title": "Image",
+            "description": "Which container image to use.",
+            "type": "string",
+            "format": "url",
+            "default": "ghcr.io/dns4acme/dns4acme"
+        },
+        "listen_ip": {
+            "title": "Listen IP",
+            "description": "IP address to listen on. This setting only takes effect with the the 'hostnet' ingress method.",
+            "type": "string",
+            "anyOf": [
+                { "format": "ipv4" },
+                { "format": "ipv6" }
+            ],
+            "default": "0.0.0.0"
+        },
+        "listen_port": {
+            "title": "Listen port",
+            "description": "Port to listen on. You don't need to change this unless you use the 'hostnet' ingress method.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "default": 5353
+        },
+        "log_level": {
+            "title": "Log level",
+            "description": "Level to log at. Must be DEBUG, INFO, WARN, or ERROR.",
+            "type": "string",
+            "enum": ["DEBUG","INFO","WARN","ERROR"],
+            "default": "INFO"
+        },
+        "nameservers": {
+            "title": "Nameservers",
+            "description": "List of nameservers to include in SOA and NS responses.",
+            "type": "array",
+            "minLength": 1,
+            "items": {
+                "type": "string",
+                "format": "hostname"
+            }
+        },
+        "backend": {
+            "title": "Backend",
+            "description": "Configure the backend to use for storing zone data.",
+            "type": "object",
+            "oneOf": [
+                {
+                    "required": ["type"],
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "const": "kubernetes"
+                        },
+                        "host": {
+                            "type": "string",
+                            "default": "kubernetes.default.svc"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
