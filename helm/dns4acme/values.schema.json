@@ -19,44 +19,26 @@
         "ingress": {
             "title": "Ingress",
             "description": "How to get external traffic to DNS4ACME.",
-            "oneOf": [
-                {
-                    "type": "object",
-                    "required": ["method"],
-                    "properties": {
-                        "method": {
-                            "type": "string",
-                            "const": "loadbalancer"
-                        }
-                    }
+            "type": "object",
+            "required": [
+                "method"
+            ],
+            "properties": {
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "loadbalancer",
+                        "hostnet",
+                        "nodeport"
+                    ]
                 },
-                {
-                    "type": "object",
-                    "required": ["method"],
-                    "properties": {
-                        "method": {
-                            "type": "string",
-                            "const": "hostnet"
-                        }
-                    }
-                },
-                {
-                    "type": "object",
-                    "required": ["method", "node_port"],
-                    "properties": {
-                        "method": {
-                            "type": "string",
-                            "const": "nodeport"
-                        },
-                        "node_port": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 65535,
-                            "default": 30053
-                        }
-                    }
+                "node_port": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535,
+                    "default": 30053
                 }
-            ]
+            }
         },
         "image": {
             "title": "Image",
