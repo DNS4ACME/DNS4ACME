@@ -50,38 +50,47 @@ func TestProvider(t *testing.T) {
 		config.APIPath = "/api"
 	}
 
-	provider, err := config.BuildFull(context.Background())
+	provider, err := config.BuildFull(t.Context())
 	if err != nil {
 		t.Skipf("Cannot build Kubernetes provider from config, skipping test (%v)", err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 		if err := provider.Close(ctx); err != nil {
 			t.Errorf("Failed to close provider: %v", err)
 		}
-	})
+	}()
 
 	// TODO the CRD must be deployed for this to work.
 
-	if err := provider.Create(t.Context(), "test.example.com", "asdf"); err != nil {
-		t.Fatalf("Failed to create test domain: %v", err)
+	if err := provider.CreateZone(t.Context(), "test.example.com"); err != nil {
+		t.Fatalf("Failed to create test zone: %v", err)
 	}
-	t.Cleanup(func() {
+	if err := provider.CreateKey(t.Context(), "asdf", "asdf"); err != nil {
+		t.Fatalf("Failed to create test key: %v", err)
+	}
+	if err := provider.BindKey(t.Context(), "asdf", "test.example.com"); err != nil {
+		t.Fatalf("Failed to bind test key: %v", err)
+	}
+	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
-		if err := provider.Delete(ctx, "test.example.com"); err != nil {
-			t.Errorf("Failed to delete test domain: %v", err)
+		if err := provider.DeleteZone(ctx, "test.example.com"); err != nil {
+			t.Errorf("Failed to delete test zone: %v", err)
 		}
-	})
-	initialData, err := provider.Get(t.Context(), "test.example.com")
+		if err := provider.DeleteKey(ctx, "asdf"); err != nil {
+			t.Errorf("Failed to delete test key: %v", err)
+		}
+	}()
+	initialData, err := provider.GetZone(t.Context(), "test.example.com")
 	if err != nil {
 		t.Fatalf("Failed to get initial data: %v", err)
 	}
-	if err := provider.Set(t.Context(), "test.example.com", []string{"Hello world!"}); err != nil {
-		t.Fatalf("Failed to set test domain: %v", err)
+	if err := provider.SetZone(t.Context(), "test.example.com", []string{"Hello world!"}); err != nil {
+		t.Fatalf("Failed to set test zone: %v", err)
 	}
-	nextData, err := provider.Get(t.Context(), "test.example.com")
+	nextData, err := provider.GetZone(t.Context(), "test.example.com")
 	if err != nil {
 		t.Errorf("Failed to get next data: %v", err)
 	}

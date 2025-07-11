@@ -10,6 +10,7 @@ import (
 	"github.com/dns4acme/dns4acme/backend"
 	"github.com/miekg/dns"
 	"hash"
+	"strings"
 )
 
 type tsigProvider struct {
@@ -18,21 +19,19 @@ type tsigProvider struct {
 }
 
 func (r tsigProvider) Generate(msg []byte, t *dns.TSIG) ([]byte, error) {
-	zoneData, err := getZone(r.ctx, r.backend, t.Hdr.Name)
+	key, err := r.backend.GetKey(r.ctx, strings.TrimSuffix(t.Hdr.Name, "."))
 	if err != nil {
-		// TODO log error
 		return nil, dns.ErrSig
 	}
-	return r.generateSignature(zoneData.UpdateKey, msg, t)
+	return r.generateSignature(key.Secret, msg, t)
 }
 
 func (r tsigProvider) Verify(msg []byte, t *dns.TSIG) error {
-	zoneData, err := getZone(r.ctx, r.backend, t.Hdr.Name)
+	key, err := r.backend.GetKey(r.ctx, strings.TrimSuffix(t.Hdr.Name, "."))
 	if err != nil {
-		// TODO error handling
 		return dns.ErrSig
 	}
-	return r.hmacVerify(msg, zoneData.UpdateKey, t)
+	return r.hmacVerify(msg, key.Secret, t)
 }
 
 func (r tsigProvider) hmacVerify(msg []byte, key string, t *dns.TSIG) error {

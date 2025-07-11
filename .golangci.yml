@@ -64,6 +64,7 @@ linters:
             - github.com/dns4acme/dns4acme$
             - github.com/dns4acme/dns4acme/
             - golang.org/x/sync/errgroup
+            - github.com/miekg/dns
 formatters:
   exclusions:
     paths:

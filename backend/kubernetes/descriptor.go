@@ -12,7 +12,7 @@ func (d descriptor) Name() string {
 }
 
 func (d descriptor) Description() string {
-	return "Backend that stores domains and their records in a Kubernetes CRD."
+	return "Backend that stores zones and their records in a Kubernetes CRD."
 }
 
 func (d descriptor) Config() backend.Config {

@@ -5,10 +5,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/dns4acme/dns4acme/backend"
+	"github.com/dns4acme/dns4acme/lang/E"
 	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -104,19 +106,53 @@ func (c Config) BuildFull(ctx context.Context) (Provider, error) {
 	}
 	logger = logger.WithGroup("kubernetes")
 	p := &provider{
-		config:        c,
-		logger:        logger,
-		domains:       nil,
-		dynamicClient: nil,
+		config:           c,
+		zones:            nil,
+		keys:             nil,
+		keyBindings:      nil,
+		secrets:          nil,
+		logger:           logger,
+		dynamicClient:    nil,
+		keyBindingsLock:  &sync.RWMutex{},
+		keyBindingsByKey: map[string]map[string]keyBindingSpec{},
 	}
 	cfg.WarningHandlerWithContext = p
+	p.logger.DebugContext(ctx, "Starting Kubernetes monitoring...")
 	p.dynamicClient, err = dynamic.NewForConfig(&cfg)
 	if err != nil {
 		return nil, backend.ErrConfiguration.Wrap(err)
 	}
-	p.domains, err = newObjectCRUD[*domain](ctx, p.dynamicClient, c.Namespace, kind, groupVersionResource, logger)
+	p.zones, err = newObjectCRUD[*zone](ctx, p.dynamicClient, c.Namespace, zoneKind, zoneGroupVersionResource, logger, nil)
 	if err != nil {
-		return nil, backend.ErrConfiguration.Wrap(err)
+		if E.Is(err, backend.ErrObjectNotInBackend) {
+			err = ErrCRDMissing.Wrap(err)
+		}
+		p.logger.ErrorContext(ctx, err.Error(), E.ToSLogAttr(err)...)
+		return nil, err
+	}
+	p.keys, err = newObjectCRUD[*key](ctx, p.dynamicClient, c.Namespace, keyKind, keyGroupVersionResource, logger, nil)
+	if err != nil {
+		if E.Is(err, backend.ErrObjectNotInBackend) {
+			err = ErrCRDMissing.Wrap(err)
+		}
+		p.logger.ErrorContext(ctx, err.Error(), E.ToSLogAttr(err)...)
+		return nil, err
+	}
+	p.keyBindings, err = newObjectCRUD[*keyBinding](ctx, p.dynamicClient, c.Namespace, keyBindingKind, keyBindingGroupVersionResource, logger, p.updateKeyBindingIndex)
+	if err != nil {
+		if E.Is(err, backend.ErrObjectNotInBackend) {
+			err = ErrCRDMissing.Wrap(err)
+		}
+		p.logger.ErrorContext(ctx, err.Error(), E.ToSLogAttr(err)...)
+		return nil, err
+	}
+	p.secrets, err = newObjectCRUD[*secret](ctx, p.dynamicClient, c.Namespace, secretKind, secretGroupVersionResource, logger, nil)
+	if err != nil {
+		if E.Is(err, backend.ErrObjectNotInBackend) {
+			err = ErrCRDMissing.Wrap(err)
+		}
+		p.logger.ErrorContext(ctx, err.Error(), E.ToSLogAttr(err)...)
+		return nil, err
 	}
 
 	return p, nil

@@ -8,6 +8,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"log"
 	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -138,26 +139,6 @@ type runningServer struct {
 }
 
 func (r runningServer) ServeDNS(writer dns.ResponseWriter, msg *dns.Msg) {
-	if msg.RecursionAvailable || msg.Authoritative || len(msg.Question) == 0 || (msg.Opcode != dns.OpcodeQuery && msg.Opcode != dns.OpcodeUpdate) {
-		// These are cases that are not legitimate queries for an ACME DNS responder, so they must be either scans
-		// or denial-of-service requests trying to elicit large UDP responses. While this is not RFC-conformant, we
-		// will completely ignore such requests as a defense measure and only respond to legitimate queries.
-		// TODO when using TCP, respond to the invalid request
-		r.logger.Debug(
-			"Request contains suspected DoS or scan types, ignoring...",
-			slog.String("query", msg.String()),
-		)
-		if err := writer.Close(); err != nil {
-			r.logger.Debug(
-				"Cannot close connection for suspected DoS or scan request.",
-				append(
-					[]any{slog.String("query", msg.String())},
-					E.ToSLogAttr(err)...,
-				)...,
-			)
-		}
-		return
-	}
 	switch msg.Opcode {
 	case dns.OpcodeQuery:
 		r.serveQuery(r.ctx, writer, msg)
@@ -189,6 +170,13 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		return
 	}
 	tsig := msg.IsTsig()
+	if tsig == nil {
+		response.SetRcode(msg, dns.RcodeNotAuth)
+		if err := writer.WriteMsg(response); err != nil {
+			r.logger.Debug("Cannot write response for missing signature.", E.ToSLogAttr(err)...)
+		}
+		return
+	}
 	if len(msg.Question) != 1 {
 		response.SetRcode(msg, dns.RcodeFormatError)
 		if err := writer.WriteMsg(response); err != nil {
@@ -196,11 +184,12 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		}
 		return
 	}
-	if msg.Question[0].Name != tsig.Hdr.Name {
+	key, err := r.backend.GetKey(ctx, strings.TrimSuffix(tsig.Hdr.Name, "."))
+	if err != nil {
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
+			r.logger.Debug("Cannot write response for missing key.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
@@ -213,9 +202,17 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		}
 		return
 	}
+	if !slices.Contains(key.Zones, strings.TrimPrefix(strings.TrimSuffix(msg.Question[0].Name, "."), "_acme-challenge.")) {
+		response.SetRcode(msg, dns.RcodeNotAuth)
+		response.Extra = append(response.Extra, tsig)
+		if err := writer.WriteMsg(response); err != nil {
+			r.logger.Debug("Cannot write response for missing permissions.", E.ToSLogAttr(err)...)
+		}
+		return
+	}
 	txtValues := zone.ACMEChallengeAnswers
 	for _, ns := range msg.Ns {
-		if ns.Header().Name != tsig.Hdr.Name {
+		if ns.Header().Name != msg.Question[0].Name {
 			response.SetRcode(msg, dns.RcodeNotAuth)
 			response.Extra = append(response.Extra, tsig)
 			if err := writer.WriteMsg(response); err != nil {
@@ -241,7 +238,7 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 	name := msg.Question[0].Name
 	name = strings.TrimSuffix(name, ".")
 	name = strings.TrimPrefix(name, "_acme-challenge.")
-	if err := r.backend.Set(ctx, name, txtValues); err != nil {
+	if err := r.backend.SetZone(ctx, name, txtValues); err != nil {
 		response.SetRcode(msg, dns.RcodeServerFailure)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
@@ -270,7 +267,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 	question := msg.Question[0]
 	zoneData, err := r.getZone(ctx, question.Name)
 	if err != nil {
-		if E.Is(err, backend.ErrDomainNotInBackend) {
+		if E.Is(err, backend.ErrZoneNotInBackend) {
 			response.SetRcode(msg, dns.RcodeRefused)
 			if sig := msg.IsTsig(); sig != nil {
 				response.Extra = append(response.Extra, sig)
@@ -357,7 +354,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 	}
 }
 
-func (r runningServer) getZone(ctx context.Context, name string) (backend.ProviderResponse, error) {
+func (r runningServer) getZone(ctx context.Context, name string) (backend.ProviderZoneResponse, error) {
 	return getZone(ctx, r.backend, name)
 }
 
@@ -388,12 +385,12 @@ func (r runningServer) Stop(ctx context.Context) error {
 	return nil
 }
 
-func getZone(ctx context.Context, backendProvider backend.Provider, name string) (backend.ProviderResponse, error) {
+func getZone(ctx context.Context, backendProvider backend.Provider, name string) (backend.ProviderZoneResponse, error) {
 	if !strings.HasPrefix(name, "_acme-challenge.") {
-		return backend.ProviderResponse{}, backend.ErrDomainNotInBackend
+		return backend.ProviderZoneResponse{}, backend.ErrZoneNotInBackend
 	}
 	name = strings.TrimSuffix(name, ".")
 	name = strings.TrimPrefix(name, "_acme-challenge.")
-	zoneData, err := backendProvider.Get(ctx, name)
+	zoneData, err := backendProvider.GetZone(ctx, name)
 	return zoneData, err
 }

@@ -10,8 +10,7 @@ import (
 
 func New(ctx context.Context, config *Config, output io.Writer) (core.Server, error) {
 	if _, ok := config.BackendConfigs[config.Backend]; !ok {
-		// TODO better error handling
-		return nil, fmt.Errorf("backend %s does not exist", config.Backend)
+		return nil, core.ErrInvalidConfiguration.Wrap(fmt.Errorf("backend %s does not exist", config.Backend))
 	}
 	backendProvider, err := config.BackendConfigs[config.Backend].Build(ctx)
 	if err != nil {
@@ -27,7 +26,6 @@ func New(ctx context.Context, config *Config, output io.Writer) (core.Server, er
 
 	srv, err := core.New(config.Config, backendProvider, logger)
 	if err != nil {
-		// TODO better error handling
 		return nil, err
 	}
 	return srv, nil

@@ -32,11 +32,11 @@ func (w waiter[T]) submit(object T) error {
 	return nil
 }
 
-func (w waiter[T]) wait(ctx context.Context, object T, condition func(object T) (bool, error)) error { //nolint:unused // This is used, incorrectly reported
+func (w waiter[T]) wait(ctx context.Context, object T, condition func() (bool, error)) error { //nolint:unused // This is used, incorrectly reported
 	name := object.name()
 	w.lock.Lock()
 
-	ok, err := condition(object)
+	ok, err := condition()
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (w waiter[T]) wait(ctx context.Context, object T, condition func(object T) 
 		select {
 		case <-waitChan:
 			w.lock.Lock()
-			ok, err := condition(object)
+			ok, err := condition()
 			if err != nil {
 				return err
 			}
