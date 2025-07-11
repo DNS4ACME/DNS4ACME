@@ -114,6 +114,7 @@ func (s server) Start(ctx context.Context) (RunningServer, error) {
 		}
 		return nil, err
 	}
+	s.logger.Info("DNS4ACME running", slog.String("listen", srv.config.Listen.String()))
 	return srv, nil
 }
 
