@@ -9,16 +9,18 @@ spec:
     app.kubernetes.io/name: {{ .Release.Name | quote }}
   type: {{ if eq .Values.ingress.method "loadbalancer" }}LoadBalancer{{ else }}NodePort{{ end }}
   ports:
-    - port: 53
+    - name: udp
+      port: 53
       {{- if eq .Values.ingress.method "nodeport" }}
       nodePort: {{ with .Values.ingress.node_port }}{{ . }}{{ else }}30053{{ end }}
       {{- end }}
       protocol: UDP
-      targetPort: {{ with .Values.listen_port }}{{ . | quote }}{{ else }}"5353"{{ end }}
-    - port: 53
+      targetPort: {{ with .Values.listen_port }}{{ . }}{{ else }}5353{{ end }}
+    - name: tcp
+      port: 53
       {{- if eq .Values.ingress.method "nodeport" }}
       nodePort: {{ with .Values.ingress.node_port }}{{ . }}{{ else }}30053{{ end }}
       {{- end }}
       protocol: TCP
-      targetPort: {{ with .Values.listen_port }}{{ . | quote }}{{ else }}"5353"{{ end }}
+      targetPort: {{ with .Values.listen_port }}{{ . }}{{ else }}5353{{ end }}
   {{- end }}
