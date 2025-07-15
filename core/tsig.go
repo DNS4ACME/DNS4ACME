@@ -20,7 +20,8 @@ type tsigProvider struct {
 func (r tsigProvider) Generate(msg []byte, t *dns.TSIG) ([]byte, error) {
 	zoneData, err := getZone(r.ctx, r.backend, t.Hdr.Name)
 	if err != nil {
-		return nil, ErrTSigFailure.Wrap(err)
+		// TODO log error
+		return nil, dns.ErrSig
 	}
 	return r.generateSignature(zoneData.UpdateKey, msg, t)
 }
@@ -28,7 +29,8 @@ func (r tsigProvider) Generate(msg []byte, t *dns.TSIG) ([]byte, error) {
 func (r tsigProvider) Verify(msg []byte, t *dns.TSIG) error {
 	zoneData, err := getZone(r.ctx, r.backend, t.Hdr.Name)
 	if err != nil {
-		return ErrTSigFailure.Wrap(err)
+		// TODO error handling
+		return dns.ErrSig
 	}
 	return r.hmacVerify(msg, zoneData.UpdateKey, t)
 }
@@ -36,14 +38,17 @@ func (r tsigProvider) Verify(msg []byte, t *dns.TSIG) error {
 func (r tsigProvider) hmacVerify(msg []byte, key string, t *dns.TSIG) error {
 	b, err := r.generateSignature(key, msg, t)
 	if err != nil {
-		return ErrTSigFailure.Wrap(err)
+		// TODO error handling
+		return err
 	}
 	mac, err := hex.DecodeString(t.MAC)
 	if err != nil {
-		return ErrTSigFailure.Wrap(err)
+		// TODO error handling
+		return err
 	}
 	if !hmac.Equal(b, mac) {
-		return ErrTSigFailure.Wrap(dns.ErrSig)
+		// TODO error handling
+		return dns.ErrSig
 	}
 	return nil
 }
@@ -51,7 +56,8 @@ func (r tsigProvider) hmacVerify(msg []byte, key string, t *dns.TSIG) error {
 func (r tsigProvider) generateSignature(key string, msg []byte, t *dns.TSIG) ([]byte, error) {
 	decodedKey, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
-		return nil, ErrTSigFailure.Wrap(err)
+		// TODO log error
+		return nil, dns.ErrSig
 	}
 	var h hash.Hash
 	switch dns.CanonicalName(t.Algorithm) {
@@ -60,7 +66,8 @@ func (r tsigProvider) generateSignature(key string, msg []byte, t *dns.TSIG) ([]
 	case dns.HmacSHA512:
 		h = hmac.New(sha512.New, decodedKey)
 	default:
-		return nil, ErrTSigFailure.Wrap(dns.ErrKeyAlg)
+		// TODO log error
+		return nil, dns.ErrSig
 	}
 	h.Write(msg)
 	return h.Sum(nil), nil
