@@ -62,6 +62,16 @@ func (s server) Start(ctx context.Context) (RunningServer, error) {
 			dnsServer := &dns.Server{
 				Addr: s.config.Listen.String(),
 				Net:  proto,
+				MsgAcceptFunc: func(dh dns.Header) dns.MsgAcceptAction {
+					if isResponse := dh.Bits&(1<<15) != 0; isResponse {
+						return dns.MsgIgnore
+					}
+					opcode := int(dh.Bits>>11) & 0xF
+					if opcode != dns.OpcodeQuery && opcode != dns.OpcodeNotify && opcode != dns.OpcodeUpdate {
+						return dns.MsgRejectNotImplemented
+					}
+					return dns.MsgAccept
+				},
 				NotifyStartedFunc: func() {
 					lock.Lock()
 					defer lock.Unlock()
