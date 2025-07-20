@@ -24,35 +24,35 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
     image_templates:
-      - "ghcr.io/dns4acme/dns4acme:latest-amd64"
-      - "ghcr.io/dns4acme/dns4acme:{{ .Version }}-amd64"
-      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-amd64"
-      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}-amd64"
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:latest-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Version }}-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-amd64
   - use: buildx
     goarch: arm64
     dockerfile: Dockerfile.goreleaser
     build_flag_templates:
       - "--platform=linux/arm64"
     image_templates:
-      - "ghcr.io/dns4acme/dns4acme:latest-arm64"
-      - "ghcr.io/dns4acme/dns4acme:{{ .Version }}-arm64"
-      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-arm64"
-      - "ghcr.io/dns4acme/dns4acme:{{ .Major }}-arm64"
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:latest-arm64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Version }}-arm64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}-arm64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-arm64
 # Multi-arch images:
 docker_manifests:
-  - name_template: ghcr.io/dns4acme/dns4acme:latest
+  - name_template: ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:latest
     image_templates:
-      - ghcr.io/dns4acme/dns4acme:latest-amd64
-      - ghcr.io/dns4acme/dns4acme:latest-arm64
-  - name_template: ghcr.io/dns4acme/dns4acme:{{ .Version }}
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:latest-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:latest-arm64
+  - name_template: ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Version }}
     image_templates:
-      - ghcr.io/dns4acme/dns4acme:{{ .Version }}-amd64
-      - ghcr.io/dns4acme/dns4acme:{{ .Version }}-arm64
-  - name_template: ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Version }}-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Version }}-arm64
+  - name_template: ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}
     image_templates:
-      - ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-amd64
-      - ghcr.io/dns4acme/dns4acme:{{ .Major }}.{{ .Minor }}-arm64
-  - name_template: ghcr.io/dns4acme/dns4acme:{{ .Major }}
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}-arm64
+  - name_template: ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}
     image_templates:
-      - ghcr.io/dns4acme/dns4acme:{{ .Major }}-amd64
-      - ghcr.io/dns4acme/dns4acme:{{ .Major }}-arm64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-arm64
