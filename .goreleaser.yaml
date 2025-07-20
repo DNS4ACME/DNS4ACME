@@ -54,8 +54,6 @@ docker_manifests:
       - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}-arm64
   - name_template: ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}
     image_templates:
-      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-amd64
-      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-arm64
 signs:
   - cmd: cosign
     args:
