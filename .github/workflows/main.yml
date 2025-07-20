@@ -103,6 +103,10 @@ jobs:
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 #v3.9.2
         with:
           cosign-release: 'v2.5.3'
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@cee1b8e05ae5b2593a75e197229729eabaa9f8ec #v0.20.2
+        with:
+          syft-version: v1.28.0
       - name: Docker login
         run: |
           echo "${GITHUB_TOKEN}" | docker login ghcr.io --username "${DOCKER_USER}" --password-stdin
@@ -145,6 +149,10 @@ jobs:
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 #v3.9.2
         with:
           cosign-release: 'v2.5.3'
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@cee1b8e05ae5b2593a75e197229729eabaa9f8ec #v0.20.2
+        with:
+          syft-version: v1.28.0
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 #v6.3.0
         with:
