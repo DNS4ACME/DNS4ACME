@@ -16,11 +16,17 @@ builds:
     goarch:
       - amd64
       - arm64
-# Arch-dependent images:
+# Packaging
+archives:
+  - id: default
+    files:
+    - LICENSE.md
 dockers:
   - use: buildx
     goarch: amd64
     dockerfile: Dockerfile.goreleaser
+    extra_files:
+      - LICENSE.md
     build_flag_templates:
       - "--platform=linux/amd64"
     image_templates:
@@ -31,6 +37,8 @@ dockers:
   - use: buildx
     goarch: arm64
     dockerfile: Dockerfile.goreleaser
+    extra_files:
+      - LICENSE.md
     build_flag_templates:
       - "--platform=linux/arm64"
     image_templates:
@@ -38,7 +46,6 @@ dockers:
       - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Version }}-arm64
       - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}-arm64
       - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-arm64
-# Multi-arch images:
 docker_manifests:
   - name_template: ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:latest
     image_templates:
@@ -54,6 +61,17 @@ docker_manifests:
       - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}.{{ .Minor }}-arm64
   - name_template: ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}
     image_templates:
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-amd64
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-arm64
+# Software Bill of Materials, signatures, etc:
+sboms:
+  - id: default
+    cmd: go
+    args:
+      - "run"
+      - "github.com/dns4acme/dns4acme/tools/generate-archive-sbom"
+      - "${artifact}"
+      - "${document}"
 signs:
   - cmd: cosign
     args:
@@ -64,34 +82,10 @@ signs:
     artifacts: all
 docker_signs:
   - artifacts: manifests
+    cmd: go
     args:
-      - "sign"
-      - "${artifact}"
-      - "--yes"
-  - id: sbom-image
-    cmd: syft
-    args:
-      - "scan"
-      - "${artifact}"
-      - "--enrich"
-      - "golang"
-      - "--output"
-      - "spdx-json=${artifact}.sbom.json"
-  - id: attach-attestation
-    cmd: cosign
-    args:
-      - "attach"
-      - "attestation"
-      - "${artifact}"
-      - "--attestation"
-      - "${artifact}.sbom.json"
-sboms:
-  - id: default
-    cmd: syft
-    args:
-      - "scan"
-      - "${artifact}"
-      - "--enrich"
-      - "golang"
-      - "--output"
-      - "spdx-json=${document}"
+      - "run"
+      - "github.com/dns4acme/dns4acme/tools/image-sbom-and-signature"
+      - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}@${digest}
+      # Note: this MUST be upper case as the Cosign subject is upper case. The following line must match the subject EXACTLY.
+      - https://github.com/{{- envOrDefault "GITHUB_REPOSITORY" "DNS4ACME/DNS4ACME" -}}/.github/workflows/main.yml@refs/tags/v{{ .Version }}

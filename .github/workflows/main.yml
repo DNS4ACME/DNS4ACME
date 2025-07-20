@@ -107,6 +107,15 @@ jobs:
         uses: anchore/sbom-action/download-syft@cee1b8e05ae5b2593a75e197229729eabaa9f8ec #v0.20.2
         with:
           syft-version: v1.28.0
+      - name: Install Grant
+        run: |
+          set -euo pipefail
+          export GRANT_VERSION=0.2.7
+          export GRANT_CHECKSUM=732ca968191b577f3f70d2db4bdcf00f77789f5fcc03f91dcf78f296117a3984
+          wget https://github.com/anchore/grant/releases/download/v${GRANT_VERSION}/grant_${GRANT_VERSION}_linux_amd64.deb
+          test "$(sha256sum grant_${GRANT_VERSION}_linux_amd64.deb)" = "${GRANT_CHECKSUM}  grant_0.2.7_linux_amd64.deb"
+          sudo dpkg -i grant_${GRANT_VERSION}_linux_amd64.deb
+          rm grant_${GRANT_VERSION}_linux_amd64.deb
       - name: Docker login
         run: |
           echo "${GITHUB_TOKEN}" | docker login ghcr.io --username "${DOCKER_USER}" --password-stdin
@@ -121,6 +130,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: artifacts
@@ -153,6 +163,15 @@ jobs:
         uses: anchore/sbom-action/download-syft@cee1b8e05ae5b2593a75e197229729eabaa9f8ec #v0.20.2
         with:
           syft-version: v1.28.0
+      - name: Install Grant
+        run: |
+          set -euo pipefail
+          export GRANT_VERSION=0.2.7
+          export GRANT_CHECKSUM=732ca968191b577f3f70d2db4bdcf00f77789f5fcc03f91dcf78f296117a3984
+          wget https://github.com/anchore/grant/releases/download/v${GRANT_VERSION}/grant_${GRANT_VERSION}_linux_amd64.deb
+          test "$(sha256sum grant_${GRANT_VERSION}_linux_amd64.deb)" = "${GRANT_CHECKSUM}  grant_0.2.7_linux_amd64.deb"
+          sudo dpkg -i grant_${GRANT_VERSION}_linux_amd64.deb
+          rm grant_${GRANT_VERSION}_linux_amd64.deb
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 #v6.3.0
         with:
@@ -161,6 +180,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: artifacts
