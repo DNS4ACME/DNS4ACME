@@ -56,3 +56,17 @@ docker_manifests:
     image_templates:
       - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-amd64
       - ghcr.io/{{- envOrDefault "GITHUB_REPOSITORY" "dns4acme/dsn4acme" | tolower -}}:{{ .Major }}-arm64
+signs:
+  - cmd: cosign
+    args:
+      - "sign-blob"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: all
+docker_signs:
+  - artifacts: manifests
+    args:
+      - "sign"
+      - "${artifact}"
+      - "--yes"
