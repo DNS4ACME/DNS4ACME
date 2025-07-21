@@ -12,4 +12,3 @@ var ErrMissingBackend = E.New("MISSING_BACKEND", "backend missing")
 
 var ErrServerStartTimeout = E.New("SERVER_START_TIMEOUT", "timeout while trying to start DNS server")
 var ErrServerShutdownFailed = E.New("SERVER_SHUTDOWN_FAILED", "server shutdown failed")
-var ErrTSigFailure = E.New("TSIG_FAILURE", "signature failure")

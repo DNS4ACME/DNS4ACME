@@ -51,9 +51,9 @@ If you are running DNS4ACME outside the cluster, you can now create a token usin
 kubectl create token dns4acme
 ```
 
-## Setting up domains
+## Setting up zone and update keys
 
-The Kubernetes backend requires you to create an entry for each domain you want DNS4ACME to server. For example:
+The Kubernetes backend requires you to create an entry for each zone and update key you want DNS4ACME to server. For example:
 
 <details><summary>domain.yml</summary>
 ```yaml

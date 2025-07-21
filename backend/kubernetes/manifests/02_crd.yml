@@ -1,15 +1,15 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: domains.dns4acme.github.io
+  name: zones.dns4acme.github.io
   namespace: dns4acme
 spec:
   group: dns4acme.github.io
   names:
-    kind: Domain
-    listKind: DomainList
-    plural: domains
-    singular: domain
+    kind: Zone
+    listKind: ZoneList
+    plural: zones
+    singular: zone
   scope: Namespaced
   versions:
     - name: v1
@@ -22,14 +22,8 @@ spec:
             spec:
               type: object
               required:
-                - update_key
                 - serial
               properties:
-                update_key:
-                  title: "DNS update key"
-                  description: "Base64-encoded key to authenticate updates. This must be at least as long as the chosen HMAC method requires (43 characters for SHA256, 86 characters for SHA512)."
-                  type: string
-                  format: byte
                 serial:
                   title: "Serial"
                   description: "A non-negative serial number for the zone. DNS4ACME increments this number automatically every time the challenge list changes."
@@ -42,5 +36,86 @@ spec:
                   type: array
                   items:
                     type: string
+      served: true
+      storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: updatekeys.dns4acme.github.io
+  namespace: dns4acme
+spec:
+  group: dns4acme.github.io
+  names:
+    kind: UpdateKey
+    listKind: UpdateKeyList
+    plural: updatekeys
+    singular: updatekey
+  scope: Namespaced
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - spec
+          properties:
+            spec:
+              type: object
+              required:
+                - secretRef
+              properties:
+                secretRef:
+                  type: object
+                  required:
+                    - name
+                    - key
+                  properties:
+                    name:
+                      title: Name
+                      description: Name of the secret referenced by this update key.
+                      type: string
+                    key:
+                      title: Key
+                      description: Key of the field in the secret referenced. You can use multiple fields in the same secret to manage all of a user's update keys.
+                      type: string
+      served: true
+      storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: updatekeyzonebindings.dns4acme.github.io
+  namespace: dns4acme
+spec:
+  group: dns4acme.github.io
+  names:
+    kind: UpdateKeyZoneBinding
+    listKind: UpdateKeyZoneBindingList
+    plural: updatekeyzonebindings
+    singular: updatekeyzonebinding
+  scope: Namespaced
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - spec
+          properties:
+            spec:
+              type: object
+              required:
+                - zone
+                - updateKey
+              properties:
+                zone:
+                  title: Zone
+                  description: Names of the zone the update key applies to.
+                  type: string
+                updateKey:
+                  title: Update key
+                  description: Name of the update key that secures this zone.
+                  type: string
       served: true
       storage: true

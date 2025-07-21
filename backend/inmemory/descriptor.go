@@ -16,5 +16,5 @@ func (d descriptor) Description() string {
 }
 
 func (d descriptor) Config() backend.Config {
-	return &config{}
+	return &Config{}
 }

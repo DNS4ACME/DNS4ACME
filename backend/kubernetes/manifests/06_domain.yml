@@ -1,9 +1,34 @@
 apiVersion: dns4acme.github.io/v1
-kind: Domain
+kind: Zone
 metadata:
   name: example.com
   namespace: dns4acme
 spec:
-  # Set a strong update key in base64-encoding here:
-  update_key: EeheighupumieZ0saya0aedaiV7quaj9
   serial: 0
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example.com
+  namespace: dns4acme
+data:
+  update_key: EeheighupumieZ0saya0aedaiV7quaj9
+---
+apiVersion: dns4acme.github.io/v1
+kind: UpdateKey
+metadata:
+  name: example.com
+  namespace: dns4acme
+spec:
+  secretRef:
+    name: example.com
+    key: update_key
+---
+apiVersion: dns4acme.github.io/v1
+kind: UpdateKeyZoneBinding
+metadata:
+  name: example.com
+  namespace: dns4acme
+spec:
+  zone: example.com
+  updateKey: example.com
