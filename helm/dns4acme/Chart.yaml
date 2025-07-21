@@ -5,5 +5,5 @@ description: |
   Let's Encrypt. DNS4ACME can help if you have an old-fashioned DNS server, and you cannot automatically create the DNS
   records needed for DNS verification.
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.3.0
+appVersion: "0.3.0"

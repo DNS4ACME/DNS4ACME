@@ -23,7 +23,7 @@ spec:
       hostNetwork: {{ if eq .Values.ingress.method "hostnet" }}true{{else}}false{{end}}
       containers:
         - name: {{ .Release.Name | quote }}
-          image: {{ with .Values.image }}{{ . | quote }}{{ else }}ghcr.io/dns4acme/dns4acme{{ end }}
+          image: {{ with .Values.image }}{{ . | quote }}{{ else }}ghcr.io/dns4acme/dns4acme:{{ .Chart.AppVersion }}{{ end }}
           {{- with .Values.listen_port }}{{ if lt (int .) 1025 }}
           securityContext:
             capabilities:
