@@ -16,6 +16,7 @@ type Error interface {
 	GetMessage() string
 
 	Wrap(err error) Error
+	WrapIfError(err error, attrs ...slog.Attr) Error
 	Unwrap() error
 
 	WithAttr(attr slog.Attr) Error
@@ -35,6 +36,17 @@ type structuredError struct {
 	message string
 	cause   error
 	attrs   *lang.LinkedList[slog.Attr]
+}
+
+func (e *structuredError) WrapIfError(err error, attrs ...slog.Attr) Error {
+	if err == nil {
+		return nil
+	}
+	err2 := e.Wrap(err)
+	for _, attr := range attrs {
+		err2 = err2.WithAttr(attr)
+	}
+	return err2
 }
 
 func (e *structuredError) GetMessage() string {

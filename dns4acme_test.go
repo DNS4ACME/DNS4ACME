@@ -56,8 +56,10 @@ func TestIntegration(t *testing.T) {
 		},
 	}
 
+	ctx := t.Context()
+
 	srv, err := dns4acme.New(
-		t.Context(),
+		ctx,
 		cfg,
 		testlogger.NewWriter(t),
 	)
@@ -65,17 +67,20 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("Failed to create server: %v", err)
 	}
 
-	started, err := srv.Start(t.Context())
+	t.Logf("Starting DNS4ACME...")
+	started, err := srv.Start(ctx)
 	if err != nil {
 		t.Fatalf("Failed to start server: %v", err)
 	}
-	t.Cleanup(func() {
+	defer func() {
+		t.Logf("Stopping DNS4ACME...")
 		if err := started.Stop(context.Background()); err != nil {
 			t.Fatalf("Failed to stop server (%v)", err)
 		}
-	})
+	}()
 
 	t.Run("query-soa", func(t *testing.T) {
+		t.Logf("Querying SOA record...")
 		msg := &dns.Msg{}
 		msg.SetQuestion("_acme-challenge.example.com.", dns.TypeSOA)
 
@@ -90,8 +95,10 @@ func TestIntegration(t *testing.T) {
 		if soa.Serial != 0 {
 			t.Fatalf("Expected serial 0, got %d", soa.Serial)
 		}
+		t.Logf("Correct SOA record received: %s", soa.String())
 	})
 	t.Run("query-txt", func(t *testing.T) {
+		t.Logf("Querying TXT record...")
 		msg := &dns.Msg{}
 		msg.SetQuestion("_acme-challenge.example.com.", dns.TypeTXT)
 
@@ -102,8 +109,10 @@ func TestIntegration(t *testing.T) {
 		if len(r.Answer) != 0 {
 			t.Fatalf("Expected 0 answer, got %d", len(r.Answer))
 		}
+		t.Logf("Received no TXT record, as expected.")
 	})
 	t.Run("update-txt-nosig", func(t *testing.T) {
+		t.Logf("Trying to update TXT record without a signature...")
 		msg := &dns.Msg{}
 		msg.SetUpdate("_acme-challenge.example.com.")
 		msg.Ns = []dns.RR{
@@ -127,8 +136,10 @@ func TestIntegration(t *testing.T) {
 		if r.Rcode != dns.RcodeNotAuth {
 			t.Fatalf("Expected refusal, got %d", r.Rcode)
 		}
+		t.Logf("Received error, as expected.")
 	})
 	t.Run("update-txt-invalid-sig", func(t *testing.T) {
+		t.Logf("Trying to update TXT record with an invalid signature...")
 		msg := &dns.Msg{}
 		msg.SetUpdate("_acme-challenge.example.com.")
 		msg.Ns = []dns.RR{
@@ -158,8 +169,10 @@ func TestIntegration(t *testing.T) {
 		if r.Rcode != dns.RcodeNotAuth {
 			t.Fatalf("Expected NOTAUTH, got %d", r.Rcode)
 		}
+		t.Logf("Received error, as expected.")
 	})
 	t.Run("update-txt-notauth", func(t *testing.T) {
+		t.Logf("Trying to update TXT record with a correct signature, but without authorization...")
 		msg := &dns.Msg{}
 		msg.SetUpdate("_acme-challenge.example.com.")
 		msg.Ns = []dns.RR{
@@ -189,8 +202,10 @@ func TestIntegration(t *testing.T) {
 		if r.Rcode != dns.RcodeNotAuth {
 			t.Fatalf("Expected NOTAUTH, got %d", r.Rcode)
 		}
+		t.Logf("Received error, as expected.")
 	})
 	t.Run("update-txt", func(t *testing.T) {
+		t.Logf("Trying to update TXT record with a correct signature...")
 		msg := &dns.Msg{}
 		msg.SetUpdate("_acme-challenge.example.com.")
 		msg.Ns = []dns.RR{
@@ -220,8 +235,10 @@ func TestIntegration(t *testing.T) {
 		if r.Rcode != dns.RcodeSuccess {
 			t.Fatalf("Expected success, got %d", r.Rcode)
 		}
+		t.Logf("TXT record updated without error.")
 	})
 	t.Run("check-soa", func(t *testing.T) {
+		t.Logf("Checking if the SOA record has been updated...")
 		msg := &dns.Msg{}
 		msg.SetQuestion("_acme-challenge.example.com.", dns.TypeSOA)
 
@@ -236,8 +253,10 @@ func TestIntegration(t *testing.T) {
 		if soa.Serial != 1 {
 			t.Fatalf("Expected serial 1, got %d", soa.Serial)
 		}
+		t.Logf("Received SOA record: %s", soa.String())
 	})
 	t.Run("check-txt", func(t *testing.T) {
+		t.Logf("Checking if the TXT record has been updated...")
 		msg := &dns.Msg{}
 		msg.SetQuestion("_acme-challenge.example.com.", dns.TypeTXT)
 
@@ -261,5 +280,6 @@ func TestIntegration(t *testing.T) {
 		if txt.Hdr.Ttl != 60 {
 			t.Fatalf("Expected ttl 60, got %d", txt.Hdr.Ttl)
 		}
+		t.Logf("Received TXT record: %s", txt.String())
 	})
 }

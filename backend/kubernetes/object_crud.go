@@ -75,6 +75,7 @@ func newObjectCRUD[T object[T]](
 ) (objectCRUD[T], error) {
 	lock := &sync.RWMutex{}
 	cli := &objectClient[T]{
+		ctx:                  ctx,
 		dynamicClient:        dynamicClient,
 		namespace:            namespace,
 		kind:                 kind,
@@ -95,6 +96,7 @@ func newObjectCRUD[T object[T]](
 }
 
 type objectClient[T object[T]] struct {
+	ctx                  context.Context
 	dynamicClient        *dynamic.DynamicClient
 	namespace            string
 	kind                 string
@@ -378,7 +380,8 @@ func (o *objectClient[T]) onAdd(object any) {
 
 	o.lock.Lock()
 	defer o.lock.Unlock()
-	o.logger.Debug(
+	o.logger.DebugContext(
+		o.ctx,
 		"Kubernetes cluster reports object added",
 		slog.String("name", newObject.name()),
 	)
@@ -403,7 +406,8 @@ func (o *objectClient[T]) onUpdate(oldObjectAny, newObjectAny any) {
 	}
 	o.lock.Lock()
 	defer o.lock.Unlock()
-	o.logger.Debug(
+	o.logger.DebugContext(
+		o.ctx,
 		"Kubernetes cluster reports object updated",
 		slog.String("name", newObject.name()),
 	)
@@ -424,7 +428,8 @@ func (o *objectClient[T]) onDelete(object any) {
 
 	o.lock.Lock()
 	defer o.lock.Unlock()
-	o.logger.Debug(
+	o.logger.DebugContext(
+		o.ctx,
 		"Kubernetes cluster reports object deleted",
 		slog.String("name", oldObject.name()),
 	)

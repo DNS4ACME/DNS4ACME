@@ -5,8 +5,6 @@ import (
 	"github.com/dns4acme/dns4acme/backend"
 	"github.com/dns4acme/dns4acme/lang/E"
 	"github.com/miekg/dns"
-	"golang.org/x/sync/errgroup"
-	"log"
 	"log/slog"
 	"slices"
 	"strings"
@@ -46,96 +44,105 @@ type server struct {
 
 func (s server) Start(ctx context.Context) (RunningServer, error) {
 	srv := &runningServer{
-		ctx:     ctx,
-		config:  s.config,
-		backend: s.backend,
-		lock:    &sync.Mutex{},
-		logger:  s.logger,
+		ctx:               ctx,
+		config:            s.config,
+		backend:           s.backend,
+		logger:            s.logger,
+		dnsServersRunning: map[*dns.Server]bool{},
+		dnsServersClose:   map[*dns.Server]chan struct{}{},
+		dnsServerLocks:    map[*dns.Server]*sync.Mutex{},
 	}
-
-	errGroup := &errgroup.Group{}
 	for _, proto := range []string{"tcp", "udp"} {
-		errGroup.Go(func() error {
-			started := make(chan struct{})
-			hasStarted := false
-			var startupError error
-			lock := sync.Mutex{}
-			dnsServer := &dns.Server{
-				Addr: s.config.Listen.String(),
-				Net:  proto,
-				MsgAcceptFunc: func(dh dns.Header) dns.MsgAcceptAction {
-					if isResponse := dh.Bits&(1<<15) != 0; isResponse {
-						return dns.MsgIgnore
-					}
-					opcode := int(dh.Bits>>11) & 0xF
-					if opcode != dns.OpcodeQuery && opcode != dns.OpcodeNotify && opcode != dns.OpcodeUpdate {
-						return dns.MsgRejectNotImplemented
-					}
-					return dns.MsgAccept
-				},
-				NotifyStartedFunc: func() {
-					lock.Lock()
-					defer lock.Unlock()
-					close(started)
-				},
-				MsgInvalidFunc: func(m []byte, err error) {
-					s.logger.Debug("Invalid DNS message", slog.String("error", err.Error()), slog.String("m", string(m)))
-				},
-				TsigProvider: &tsigProvider{
-					s.backend,
-					ctx,
-				},
-				Handler: srv,
-			}
-			go func(ctx context.Context) {
-				if err := dnsServer.ListenAndServe(); err != nil {
-					lock.Lock()
-					defer lock.Unlock()
-					if hasStarted {
-						srv.onStopped(ctx, err, dnsServer)
-					} else {
-						startupError = err
-						close(started)
-					}
+		s.logger.DebugContext(
+			ctx,
+			"Starting DNS4ACME listener...",
+			slog.String("proto", proto),
+			slog.String("address", s.config.Listen.String()),
+		)
+		started := make(chan struct{})
+		hasStarted := false
+		var startupError error
+		var dnsServer *dns.Server
+		dnsServer = &dns.Server{
+			Addr: s.config.Listen.String(),
+			Net:  proto,
+			MsgAcceptFunc: func(dh dns.Header) dns.MsgAcceptAction {
+				if isResponse := dh.Bits&(1<<15) != 0; isResponse {
+					return dns.MsgIgnore
 				}
-			}(ctx)
-			select {
-			case <-started:
-			case <-ctx.Done():
-				_ = dnsServer.ShutdownContext(ctx)
-				return ErrServerStartTimeout
-			}
-
-			lock.Lock()
-			defer lock.Unlock()
-			if startupError != nil {
-				return startupError
-			}
-			srv.lock.Lock()
-			defer srv.lock.Unlock()
-			srv.dnsServers = append(srv.dnsServers, dnsServer)
-			return nil
-		})
-	}
-	if err := errGroup.Wait(); err != nil {
-		srv.lock.Lock()
-		defer srv.lock.Unlock()
-		for _, dnsServer := range srv.dnsServers {
-			_ = dnsServer.ShutdownContext(ctx)
+				opcode := int(dh.Bits>>11) & 0xF
+				if opcode != dns.OpcodeQuery && opcode != dns.OpcodeNotify && opcode != dns.OpcodeUpdate {
+					return dns.MsgRejectNotImplemented
+				}
+				return dns.MsgAccept
+			},
+			NotifyStartedFunc: func() {
+				srv.dnsServerLocks[dnsServer].Lock()
+				defer srv.dnsServerLocks[dnsServer].Unlock()
+				hasStarted = true
+				close(started)
+			},
+			MsgInvalidFunc: func(_ []byte, err error) {
+				s.logger.DebugContext(ctx, "Invalid DNS message", E.ToSLogAttr(err)...)
+			},
+			TsigProvider: &tsigProvider{
+				s.logger,
+				s.backend,
+				ctx,
+			},
+			Handler: srv,
 		}
-		return nil, err
+		srv.dnsServers = append(srv.dnsServers, dnsServer)
+		srv.dnsServersRunning[dnsServer] = false
+		srv.dnsServersClose[dnsServer] = make(chan struct{})
+		srv.dnsServerLocks[dnsServer] = &sync.Mutex{}
+		go func(ctx context.Context) {
+			err := dnsServer.ListenAndServe()
+			if hasStarted {
+				srv.onStopped(ctx, err, dnsServer)
+			} else {
+				srv.dnsServerLocks[dnsServer].Lock()
+				defer srv.dnsServerLocks[dnsServer].Unlock()
+				startupError = err
+				close(started)
+			}
+			close(srv.dnsServersClose[dnsServer])
+		}(ctx)
+
+		select {
+		case <-started:
+		case <-ctx.Done():
+			_ = srv.Stop(ctx)
+			return nil, ErrServerStartTimeout
+		}
+
+		if startupError != nil {
+			_ = srv.Stop(ctx)
+			return nil, startupError
+		}
+		srv.dnsServerLocks[dnsServer].Lock()
+		srv.dnsServersRunning[dnsServer] = true
+		srv.dnsServerLocks[dnsServer].Unlock()
+		s.logger.DebugContext(
+			ctx,
+			"DNS4ACME listener running",
+			slog.String("proto", proto),
+			slog.String("address", s.config.Listen.String()),
+		)
 	}
-	s.logger.Info("DNS4ACME running", slog.String("listen", srv.config.Listen.String()))
+	s.logger.InfoContext(ctx, "DNS4ACME running", slog.String("listen", srv.config.Listen.String()))
 	return srv, nil
 }
 
 type runningServer struct {
-	ctx        context.Context
-	config     Config
-	backend    backend.Provider
-	dnsServers []*dns.Server
-	lock       *sync.Mutex
-	logger     *slog.Logger
+	ctx               context.Context
+	config            Config
+	backend           backend.Provider
+	dnsServers        []*dns.Server
+	dnsServersRunning map[*dns.Server]bool
+	dnsServersClose   map[*dns.Server]chan struct{}
+	dnsServerLocks    map[*dns.Server]*sync.Mutex
+	logger            *slog.Logger
 }
 
 func (r runningServer) ServeDNS(writer dns.ResponseWriter, msg *dns.Msg) {
@@ -148,7 +155,8 @@ func (r runningServer) ServeDNS(writer dns.ResponseWriter, msg *dns.Msg) {
 		response := &dns.Msg{}
 		response.SetRcode(msg, dns.RcodeNotImplemented)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug(
+			r.logger.DebugContext(
+				r.ctx,
 				"Cannot write response to unsupported query.",
 				append(
 					[]any{slog.String("query", msg.String())},
@@ -165,7 +173,7 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 	if tsigStatus != nil {
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for missing signature.", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response for missing signature.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
@@ -173,14 +181,14 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 	if tsig == nil {
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for missing signature.", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response for missing signature.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
 	if len(msg.Question) != 1 {
 		response.SetRcode(msg, dns.RcodeFormatError)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for missing question.", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response for missing question.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
@@ -189,7 +197,7 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for missing key.", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response for missing key.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
@@ -198,7 +206,7 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
@@ -206,7 +214,7 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for missing permissions.", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response for missing permissions.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
@@ -216,7 +224,7 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 			response.SetRcode(msg, dns.RcodeNotAuth)
 			response.Extra = append(response.Extra, tsig)
 			if err := writer.WriteMsg(response); err != nil {
-				r.logger.Debug("Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
+				r.logger.DebugContext(ctx, "Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
 			}
 			return
 		}
@@ -224,7 +232,7 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 			response.SetRcode(msg, dns.RcodeRefused)
 			response.Extra = append(response.Extra, tsig)
 			if err := writer.WriteMsg(response); err != nil {
-				r.logger.Debug("Cannot write response for non-TXT type.", E.ToSLogAttr(err)...)
+				r.logger.DebugContext(ctx, "Cannot write response for non-TXT type.", E.ToSLogAttr(err)...)
 			}
 			return
 		}
@@ -242,14 +250,14 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		response.SetRcode(msg, dns.RcodeServerFailure)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response for backend type.", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response for backend type.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
 	response.SetRcode(msg, dns.RcodeSuccess)
 	response.Extra = append(response.Extra, tsig)
 	if err := writer.WriteMsg(response); err != nil {
-		r.logger.Debug("Cannot write update response.", E.ToSLogAttr(err)...)
+		r.logger.DebugContext(ctx, "Cannot write update response.", E.ToSLogAttr(err)...)
 	}
 }
 
@@ -273,7 +281,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 				response.Extra = append(response.Extra, sig)
 			}
 			if err = writer.WriteMsg(response); err != nil {
-				r.logger.Debug("Cannot write response", E.ToSLogAttr(err)...)
+				r.logger.DebugContext(ctx, "Cannot write response", E.ToSLogAttr(err)...)
 			}
 			return
 		}
@@ -282,9 +290,8 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 			response.Extra = append(response.Extra, sig)
 		}
 		if err = writer.WriteMsg(response); err != nil {
-			r.logger.Debug("Cannot write response", E.ToSLogAttr(err)...)
+			r.logger.DebugContext(ctx, "Cannot write response", E.ToSLogAttr(err)...)
 		}
-		// TODO log error
 		return
 	}
 	response.Authoritative = true
@@ -350,7 +357,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 		response.Extra = append(response.Extra, sig)
 	}
 	if err = writer.WriteMsg(response); err != nil {
-		log.Fatal(err)
+		r.logger.DebugContext(ctx, "Error writing response", E.ToSLogAttr(err)...)
 	}
 }
 
@@ -358,30 +365,49 @@ func (r runningServer) getZone(ctx context.Context, name string) (backend.Provid
 	return getZone(ctx, r.backend, name)
 }
 
-func (r runningServer) onStopped(ctx context.Context, _ error, srv *dns.Server) {
-	// TODO handle/log error
-	r.lock.Lock()
-	defer r.lock.Unlock()
+func (r runningServer) onStopped(ctx context.Context, err error, srv *dns.Server) {
+	r.dnsServerLocks[srv].Lock()
+	// No locking needed, the caller already locks
+	args := []any{
+		slog.String("proto", srv.Net),
+		slog.String("address", srv.Addr),
+	}
+	if err != nil {
+		args = append(args, E.ToSLogAttr(err)...)
+	}
+	r.logger.DebugContext(ctx, "DNS4ACME listener stopped", args...)
+	r.dnsServersRunning[srv] = false
+	r.dnsServerLocks[srv].Unlock()
+
 	for _, dnsServer := range r.dnsServers {
 		if srv == dnsServer {
 			continue
 		}
-		_ = dnsServer.ShutdownContext(ctx)
+		r.logger.DebugContext(
+			ctx,
+			"Shutting down listener",
+			slog.String("proto", dnsServer.Net),
+			slog.String("address", dnsServer.Addr),
+		)
+		if err := r.shutdownListener(ctx, dnsServer); err != nil {
+			r.logger.WarnContext(
+				ctx,
+				"Error shutting down listener",
+				E.ToSLogAttr(err)...,
+			)
+		}
 	}
 }
 
 func (r runningServer) Stop(ctx context.Context) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	group := &errgroup.Group{}
+	r.logger.InfoContext(ctx, "Stopping DNS4ACME...")
 	for _, dnsServer := range r.dnsServers {
-		group.Go(func() error {
-			return dnsServer.ShutdownContext(ctx)
-		})
+		if err := r.shutdownListener(ctx, dnsServer); err != nil {
+			r.logger.ErrorContext(ctx, "DNS4ACME shutdown failed", E.ToSLogAttr(err)...)
+			return ErrServerShutdownFailed.Wrap(err)
+		}
 	}
-	if err := group.Wait(); err != nil {
-		return ErrServerShutdownFailed.Wrap(err)
-	}
+	r.logger.InfoContext(ctx, "DNS4ACME shutdown complete, no errors.")
 	return nil
 }
 
@@ -393,4 +419,36 @@ func getZone(ctx context.Context, backendProvider backend.Provider, name string)
 	name = strings.TrimPrefix(name, "_acme-challenge.")
 	zoneData, err := backendProvider.GetZone(ctx, name)
 	return zoneData, err
+}
+
+func (r runningServer) shutdownListener(ctx context.Context, dnsServer *dns.Server) error {
+	r.dnsServerLocks[dnsServer].Lock()
+	if !r.dnsServersRunning[dnsServer] {
+		r.dnsServerLocks[dnsServer].Unlock()
+		return nil
+	}
+	r.logger.DebugContext(
+		ctx,
+		"Shutting down listener",
+		slog.String("proto", dnsServer.Net),
+		slog.String("address", dnsServer.Addr),
+	)
+	err := dnsServer.ShutdownContext(ctx)
+	if err != nil {
+		r.dnsServersRunning[dnsServer] = false
+	}
+	r.dnsServerLocks[dnsServer].Unlock()
+	if err != nil {
+		return ErrListenerShutdownFailed.
+			Wrap(err).
+			WithAttr(slog.String("proto", dnsServer.Net)).
+			WithAttr(slog.String("address", dnsServer.Addr))
+	}
+	select {
+	case <-ctx.Done():
+		return ErrListenerShutdownTimeout.Wrap(ctx.Err())
+	case <-r.dnsServersClose[dnsServer]:
+	}
+
+	return nil
 }

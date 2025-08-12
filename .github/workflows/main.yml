@@ -58,7 +58,7 @@ jobs:
           done
       - name: Run tests
         run: |
-          go test ./...
+          go test -v -race ./...
   lint:
     name: Lint
     runs-on: ubuntu-latest

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/dns4acme/dns4acme/backend"
 	"github.com/dns4acme/dns4acme/lang/E"
+	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"log/slog"
@@ -44,8 +45,7 @@ func (p provider) CreateKey(ctx context.Context, keyName string, secretData stri
 		p.logger.WarnContext(
 			ctx,
 			"Failed to create secret for update key",
-			slog.String("updateKey", keyName),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(err, slog.String("updateKey", keyName))...,
 		)
 		return err
 	}
@@ -70,9 +70,10 @@ func (p provider) CreateKey(ctx context.Context, keyName string, secretData stri
 			p.logger.WarnContext(
 				ctx,
 				"Cannot clean up secret after update key creation failed",
-				slog.String("secret", newSecret.name()),
-				slog.String("updateKey", keyName),
-				slog.String("error", err.Error()),
+				E.ToSLogAttr(err,
+					slog.String("secret", newSecret.name()),
+					slog.String("updateKey", keyName),
+				)...,
 			)
 		}
 		if E.Is(err, backend.ErrObjectBackendConflict) {
@@ -81,8 +82,10 @@ func (p provider) CreateKey(ctx context.Context, keyName string, secretData stri
 		p.logger.WarnContext(
 			ctx,
 			"Failed to create update key",
-			slog.String("updateKey", keyName),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(
+				err,
+				slog.String("updateKey", keyName),
+			)...,
 		)
 		return err
 	}
@@ -101,9 +104,11 @@ func (p provider) CreateKey(ctx context.Context, keyName string, secretData stri
 		p.logger.WarnContext(
 			ctx,
 			"Could not set up owner references for secret, secret will not automatically be cleaned up when the owning update key is deleted",
-			slog.String("secret", newSecret.name()),
-			slog.String("updateKey", newKey.name()),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(
+				err,
+				slog.String("secret", newSecret.name()),
+				slog.String("updateKey", newKey.name()),
+			)...,
 		)
 	}
 	return nil
@@ -118,8 +123,9 @@ func (p provider) GetKey(ctx context.Context, keyName string) (backend.ProviderK
 		p.logger.WarnContext(
 			ctx,
 			"Error getting key",
-			slog.String("key", keyName),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(err,
+				slog.String("key", keyName),
+			)...,
 		)
 		return backend.ProviderKeyResponse{}, err
 	}
@@ -138,8 +144,10 @@ func (p provider) GetKey(ctx context.Context, keyName string) (backend.ProviderK
 		p.logger.WarnContext(
 			ctx,
 			"Error getting secret",
-			slog.String("secret", keyData.Spec.SecretRef.Name),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(
+				err,
+				slog.String("secret", keyData.Spec.SecretRef.Name),
+			)...,
 		)
 		return backend.ProviderKeyResponse{}, err
 	}
@@ -187,8 +195,9 @@ func (p provider) DeleteKey(ctx context.Context, keyName string) error {
 		p.logger.WarnContext(
 			ctx,
 			"Error deleting update key",
-			slog.String("updateKey", keyName),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(err,
+				slog.String("updateKey", keyName),
+			)...,
 		)
 		return err
 	}
@@ -205,8 +214,9 @@ func (p provider) SetKeySecret(ctx context.Context, keyName string, secretData s
 		p.logger.WarnContext(
 			ctx,
 			"Error getting update key",
-			slog.String("updateKey", keyName),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(err,
+				slog.String("updateKey", keyName),
+			)...,
 		)
 		return err
 	}
@@ -220,9 +230,10 @@ func (p provider) SetKeySecret(ctx context.Context, keyName string, secretData s
 		p.logger.WarnContext(
 			ctx,
 			"Error updating secret",
-			slog.String("updateKey", keyName),
-			slog.String("secret", keyData.Spec.SecretRef.Name),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(err,
+				slog.String("updateKey", keyName),
+				slog.String("secret", keyData.Spec.SecretRef.Name),
+			)...,
 		)
 		return err
 	}
@@ -293,10 +304,11 @@ func (p provider) UnbindKey(ctx context.Context, keyName string, zoneName string
 			p.logger.WarnContext(
 				ctx,
 				"Error unbinding update key from zone",
-				slog.String("keyBinding", bindingName),
-				slog.String("updateKey", keyName),
-				slog.String("zone", zoneName),
-				slog.String("error", err.Error()),
+				E.ToSLogAttr(err,
+					slog.String("keyBinding", bindingName),
+					slog.String("updateKey", keyName),
+					slog.String("zone", zoneName),
+				)...,
 			)
 			return err
 		}
@@ -331,8 +343,9 @@ func (p provider) GetZone(ctx context.Context, zoneName string) (backend.Provide
 		p.logger.WarnContext(
 			ctx,
 			"Error getting zone",
-			slog.String("zone", zoneName),
-			slog.String("error", err.Error()),
+			E.ToSLogAttr(err,
+				slog.String("zone", zoneName),
+			)...,
 		)
 		return backend.ProviderZoneResponse{}, err
 	}
@@ -366,7 +379,20 @@ func (p provider) HandleWarningHeaderWithContext(ctx context.Context, code int, 
 }
 
 func (p provider) Close(ctx context.Context) error {
-	return p.zones.close(ctx)
+	grp := errgroup.Group{}
+	grp.Go(func() error {
+		return p.zones.close(ctx)
+	})
+	grp.Go(func() error {
+		return p.keys.close(ctx)
+	})
+	grp.Go(func() error {
+		return p.secrets.close(ctx)
+	})
+	grp.Go(func() error {
+		return p.keyBindings.close(ctx)
+	})
+	return grp.Wait()
 }
 
 func (p provider) updateKeyBindingIndex(change changeType, binding *keyBinding, oldBinding *keyBinding) {
