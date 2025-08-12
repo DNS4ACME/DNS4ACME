@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	dns4acme2 "github.com/dns4acme/dns4acme"
+	"github.com/dns4acme/dns4acme"
 	"github.com/dns4acme/dns4acme/internal/config"
 	"github.com/dns4acme/dns4acme/lang/E"
 	"log/slog"
@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	cfg := dns4acme2.NewConfig()
+	cfg := dns4acme.NewConfig()
 	configParser := config.New(cfg)
 	if len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help") {
 		_, _ = os.Stdout.Write([]byte("Usage: ./dns4acme [OPTIONS]\n\nOptions:\n"))
@@ -31,18 +31,17 @@ func main() {
 	if err := configParser.ApplyCMD(os.Args); err != nil {
 		fatal(logger, err)
 	}
-	srv, err := dns4acme2.New(context.Background(), cfg, os.Stdout)
+	ctx := context.Background()
+	srv, err := dns4acme.New(ctx, cfg, os.Stdout)
 	if err != nil {
 		fatal(logger, err)
 	}
-	ctx := context.Background()
 	runningSrv, err := srv.Start(ctx)
 	if err != nil {
 		fatal(logger, err)
 	}
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	// TODO handle server crash
 	<-done
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()

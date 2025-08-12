@@ -7,7 +7,7 @@ import (
 )
 
 // ToSLogAttr compiles an slog.Attr slice that you can use to pass to slog loggers.
-func ToSLogAttr(err error) []any {
+func ToSLogAttr(err error, extra ...any) []any {
 	var result []any
 	keys := map[string]struct{}{}
 	originalErr := err
@@ -28,7 +28,7 @@ func ToSLogAttr(err error) []any {
 	}
 	var structuredErr Error
 	if !errors.As(originalErr, &structuredErr) {
-		return []any{slog.String("error", originalErr.Error())}
+		return []any{slog.String("error_message", originalErr.Error())}
 	}
 	res := []any{
 		slog.String("error_code", structuredErr.GetCode()),
@@ -38,5 +38,5 @@ func ToSLogAttr(err error) []any {
 	if cause != nil {
 		res = append(res, slog.String("error_cause", cause.Error()))
 	}
-	return append(res, result...)
+	return append(extra, append(res, result...)...)
 }
