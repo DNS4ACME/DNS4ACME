@@ -33,6 +33,9 @@ type Provider interface {
 	GetZone(ctx context.Context, zoneName string) (ProviderZoneResponse, error)
 	// SetZone updates the zone with the specified ACME challenge answers, also implicitly updating the serial.
 	SetZone(ctx context.Context, zoneName string, acmeChallengeAnswers []string) error
+	// SetZoneDebug turns debugging on/off for a specified zone. Debugging is extremely verbose and should be turned
+	// off once done.
+	SetZoneDebug(ctx context.Context, zoneName string, debug bool) error
 
 	// Close shuts down the provider.
 	Close(ctx context.Context) error
@@ -48,4 +51,5 @@ type ProviderKeyResponse struct {
 type ProviderZoneResponse struct {
 	Serial               uint32
 	ACMEChallengeAnswers []string
+	Debug                bool
 }

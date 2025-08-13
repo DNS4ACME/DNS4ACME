@@ -36,6 +36,11 @@ spec:
                   type: array
                   items:
                     type: string
+                debug:
+                  title: "Debug"
+                  description: "Debug log all interactions for this zone. Note: this is extremely verbose, make sure to turn it off once you are done debugging!"
+                  type: boolean
+                  default: false
       served: true
       storage: true
 ---

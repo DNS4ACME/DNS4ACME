@@ -352,12 +352,21 @@ func (p provider) GetZone(ctx context.Context, zoneName string) (backend.Provide
 	return backend.ProviderZoneResponse{
 		Serial:               zoneData.Spec.Serial,
 		ACMEChallengeAnswers: zoneData.Spec.ACMEChallengeAnswers,
+		Debug:                zoneData.Spec.Debug,
 	}, nil
 }
 
 func (p provider) SetZone(ctx context.Context, zoneName string, acmeChallengeAnswers []string) error {
 	return p.zones.set(ctx, zoneName, func(object *zone) error {
 		object.Spec.ACMEChallengeAnswers = acmeChallengeAnswers
+		object.Spec.Serial++
+		return nil
+	})
+}
+
+func (p provider) SetZoneDebug(ctx context.Context, zoneName string, debug bool) error {
+	return p.zones.set(ctx, zoneName, func(object *zone) error {
+		object.Spec.Debug = debug
 		object.Spec.Serial++
 		return nil
 	})

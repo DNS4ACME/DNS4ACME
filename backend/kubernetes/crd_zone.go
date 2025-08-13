@@ -21,6 +21,7 @@ func (d *zone) mutate(mutate func(object *zone) error) (*zone, []patch, error) {
 		Spec: zoneSpec{
 			Serial:               d.Spec.Serial,
 			ACMEChallengeAnswers: answers,
+			Debug:                d.Spec.Debug,
 		},
 	}
 	if err := mutate(newZone); err != nil {
@@ -50,6 +51,11 @@ func (d *zone) createJSONPatch(previousVersion *zone) []patch {
 			Path:  "/spec/acme_challenge_answers",
 			Value: d.Spec.ACMEChallengeAnswers,
 		},
+		{
+			Op:    "replace",
+			Path:  "/spec/debug",
+			Value: d.Spec.Debug,
+		},
 	}
 }
 
@@ -62,6 +68,7 @@ var _ object[*zone] = &zone{}
 type zoneSpec struct {
 	Serial               uint32   `json:"serial"`
 	ACMEChallengeAnswers []string `json:"acme_challenge_answers,omitempty"`
+	Debug                bool     `json:"debug,omitempty"`
 }
 
 const zoneKind = "Zone"

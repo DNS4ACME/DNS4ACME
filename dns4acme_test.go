@@ -52,6 +52,7 @@ func TestIntegration(t *testing.T) {
 			"example.com": {
 				Serial:               0,
 				ACMEChallengeAnswers: nil,
+				Debug:                true,
 			},
 		},
 	}

@@ -5,6 +5,9 @@ metadata:
   namespace: dns4acme
 spec:
   serial: 0
+  # Change this to true to turn on (very) verbose logging
+  # (requires debug logging to be turned on)
+  debug: false
 ---
 apiVersion: v1
 kind: Secret
