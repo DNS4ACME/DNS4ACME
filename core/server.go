@@ -320,7 +320,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 	}
 	response.Authoritative = true
 	if zoneData.Debug {
-		logger.DebugContext(ctx, "Query: ", question.String())
+		logger.DebugContext(ctx, "Query", slog.String("query", question.String()))
 	}
 
 	switch question.Qtype {
@@ -385,7 +385,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 		response.Extra = append(response.Extra, sig)
 	}
 	if zoneData.Debug {
-		logger.DebugContext(ctx, "Response: ", response.String())
+		logger.DebugContext(ctx, "Response", slog.String("response", response.String()))
 	}
 	if err = writer.WriteMsg(response); err != nil {
 		logger.DebugContext(ctx, "Error writing response", E.ToSLogAttr(err)...)
