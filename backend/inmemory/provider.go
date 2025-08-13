@@ -154,6 +154,17 @@ func (p *provider) SetZone(_ context.Context, zoneName string, acmeChallengeAnsw
 	return nil
 }
 
+func (p *provider) SetZoneDebug(ctx context.Context, zoneName string, debug bool) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	zone, ok := p.zones[zoneName]
+	if !ok {
+		return backend.ErrZoneNotInBackend
+	}
+	zone.Debug = debug
+	return nil
+}
+
 func (p *provider) Close(_ context.Context) error {
 	return nil
 }

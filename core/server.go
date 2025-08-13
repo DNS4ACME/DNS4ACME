@@ -168,36 +168,34 @@ func (r runningServer) ServeDNS(writer dns.ResponseWriter, msg *dns.Msg) {
 }
 
 func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWriter, msg *dns.Msg) {
-	tsigStatus := writer.TsigStatus()
+	logger := r.logger.With(slog.String("remote", writer.RemoteAddr().String()), slog.String("local", writer.LocalAddr().String()))
 	response := &dns.Msg{}
+	if len(msg.Question) != 1 {
+		response.SetRcode(msg, dns.RcodeFormatError)
+		if err := writer.WriteMsg(response); err != nil {
+			logger.DebugContext(ctx, "Cannot write response for missing question.", E.ToSLogAttr(err)...)
+		}
+		return
+	}
+	tsigStatus := writer.TsigStatus()
 	if tsigStatus != nil {
+		if zone, err := r.getZone(ctx, msg.Question[0].Name); err == nil && zone.Debug {
+			logger.DebugContext(ctx, "Cannot update zone", E.ToSLogAttr(tsigStatus, slog.String("zone", msg.Question[0].Name))...)
+		}
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response for missing signature.", E.ToSLogAttr(err)...)
+			logger.DebugContext(ctx, "Cannot write response for missing signature.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
 	tsig := msg.IsTsig()
 	if tsig == nil {
+		if zone, err := r.getZone(ctx, msg.Question[0].Name); err == nil && zone.Debug {
+			logger.DebugContext(ctx, "Cannot update zone", slog.String("zone", msg.Question[0].Name), slog.String("error_message", "TSIG missing"))
+		}
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response for missing signature.", E.ToSLogAttr(err)...)
-		}
-		return
-	}
-	if len(msg.Question) != 1 {
-		response.SetRcode(msg, dns.RcodeFormatError)
-		if err := writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response for missing question.", E.ToSLogAttr(err)...)
-		}
-		return
-	}
-	key, err := r.backend.GetKey(ctx, strings.TrimSuffix(tsig.Hdr.Name, "."))
-	if err != nil {
-		response.SetRcode(msg, dns.RcodeNotAuth)
-		response.Extra = append(response.Extra, tsig)
-		if err := writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response for missing key.", E.ToSLogAttr(err)...)
+			logger.DebugContext(ctx, "Cannot write response for missing signature.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
@@ -206,33 +204,56 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
+			logger.DebugContext(ctx, "Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
-	if !slices.Contains(key.Zones, strings.TrimPrefix(strings.TrimSuffix(msg.Question[0].Name, "."), "_acme-challenge.")) {
+	logger = logger.With(slog.String("zone", msg.Question[0].Name))
+
+	key, err := r.backend.GetKey(ctx, strings.TrimSuffix(tsig.Hdr.Name, "."))
+	if err != nil {
+		if zone.Debug {
+			logger.DebugContext(ctx, "Cannot update zone", E.ToSLogAttr(err, slog.String("key", tsig.Hdr.Name))...)
+		}
+
 		response.SetRcode(msg, dns.RcodeNotAuth)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response for missing permissions.", E.ToSLogAttr(err)...)
+			logger.DebugContext(ctx, "Cannot write response for missing key.", E.ToSLogAttr(err)...)
+		}
+		return
+	}
+	logger = logger.With(slog.String("key", tsig.Hdr.Name))
+	if !slices.Contains(key.Zones, strings.TrimPrefix(strings.TrimSuffix(msg.Question[0].Name, "."), "_acme-challenge.")) {
+		if zone.Debug {
+			logger.DebugContext(ctx, "Cannot update zone", slog.String("error_message", "Key is not authorized to modify zone"))
+		}
+		response.SetRcode(msg, dns.RcodeNotAuth)
+		response.Extra = append(response.Extra, tsig)
+		if err := writer.WriteMsg(response); err != nil {
+			logger.DebugContext(ctx, "Cannot write response for missing permissions.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
 	txtValues := zone.ACMEChallengeAnswers
 	for _, ns := range msg.Ns {
 		if ns.Header().Name != msg.Question[0].Name {
+			if zone.Debug {
+				logger.DebugContext(ctx, "Cannot update zone", slog.String("error_message", "Attempting to update out-of-zone record"), slog.String("record_name", ns.Header().Name))
+			}
 			response.SetRcode(msg, dns.RcodeNotAuth)
 			response.Extra = append(response.Extra, tsig)
 			if err := writer.WriteMsg(response); err != nil {
-				r.logger.DebugContext(ctx, "Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
+				logger.DebugContext(ctx, "Cannot write response for mismatching signature.", E.ToSLogAttr(err)...)
 			}
 			return
 		}
 		if ns.Header().Rrtype != dns.TypeTXT {
+			logger.DebugContext(ctx, "Cannot update zone", slog.String("error_message", "Attempting to update non-TXT record"), slog.String("record_type", dns.TypeToString[ns.Header().Rrtype]))
 			response.SetRcode(msg, dns.RcodeRefused)
 			response.Extra = append(response.Extra, tsig)
 			if err := writer.WriteMsg(response); err != nil {
-				r.logger.DebugContext(ctx, "Cannot write response for non-TXT type.", E.ToSLogAttr(err)...)
+				logger.DebugContext(ctx, "Cannot write response for non-TXT type.", E.ToSLogAttr(err)...)
 			}
 			return
 		}
@@ -247,21 +268,23 @@ func (r runningServer) serveUpdate(ctx context.Context, writer dns.ResponseWrite
 	name = strings.TrimSuffix(name, ".")
 	name = strings.TrimPrefix(name, "_acme-challenge.")
 	if err := r.backend.SetZone(ctx, name, txtValues); err != nil {
+		logger.DebugContext(ctx, "Cannot update zone", E.ToSLogAttr(err)...)
 		response.SetRcode(msg, dns.RcodeServerFailure)
 		response.Extra = append(response.Extra, tsig)
 		if err := writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response for backend type.", E.ToSLogAttr(err)...)
+			logger.DebugContext(ctx, "Cannot write response for backend type.", E.ToSLogAttr(err)...)
 		}
 		return
 	}
 	response.SetRcode(msg, dns.RcodeSuccess)
 	response.Extra = append(response.Extra, tsig)
 	if err := writer.WriteMsg(response); err != nil {
-		r.logger.DebugContext(ctx, "Cannot write update response.", E.ToSLogAttr(err)...)
+		logger.DebugContext(ctx, "Cannot write update response.", E.ToSLogAttr(err)...)
 	}
 }
 
 func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter, msg *dns.Msg) {
+	logger := r.logger.With(slog.String("remote", writer.RemoteAddr().String()), slog.String("local", writer.LocalAddr().String()))
 	response := &dns.Msg{}
 
 	if len(msg.Question) != 1 {
@@ -273,6 +296,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 		return
 	}
 	question := msg.Question[0]
+	logger = logger.With(slog.String("zone", question.Name))
 	zoneData, err := r.getZone(ctx, question.Name)
 	if err != nil {
 		if E.Is(err, backend.ErrZoneNotInBackend) {
@@ -281,7 +305,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 				response.Extra = append(response.Extra, sig)
 			}
 			if err = writer.WriteMsg(response); err != nil {
-				r.logger.DebugContext(ctx, "Cannot write response", E.ToSLogAttr(err)...)
+				logger.DebugContext(ctx, "Cannot write response", E.ToSLogAttr(err)...)
 			}
 			return
 		}
@@ -290,11 +314,15 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 			response.Extra = append(response.Extra, sig)
 		}
 		if err = writer.WriteMsg(response); err != nil {
-			r.logger.DebugContext(ctx, "Cannot write response", E.ToSLogAttr(err)...)
+			logger.DebugContext(ctx, "Cannot write response", E.ToSLogAttr(err)...)
 		}
 		return
 	}
 	response.Authoritative = true
+	if zoneData.Debug {
+		logger.DebugContext(ctx, "Query: ", question.String())
+	}
+
 	switch question.Qtype {
 	case dns.TypeTXT:
 		response.SetRcode(msg, dns.RcodeSuccess)
@@ -356,8 +384,11 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 	if sig := msg.IsTsig(); sig != nil {
 		response.Extra = append(response.Extra, sig)
 	}
+	if zoneData.Debug {
+		logger.DebugContext(ctx, "Response: ", response.String())
+	}
 	if err = writer.WriteMsg(response); err != nil {
-		r.logger.DebugContext(ctx, "Error writing response", E.ToSLogAttr(err)...)
+		logger.DebugContext(ctx, "Error writing response", E.ToSLogAttr(err)...)
 	}
 }
 
