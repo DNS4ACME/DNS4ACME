@@ -10,6 +10,12 @@ DNS4ACME can run natively in a Kubernetes/OpenShift cluster. There are several w
 
 ---
 
+## Deploying using the Helm chart (recommended)
+
+We provide a [Helm chart](https://github.com/dns4acme/helm-chart) to deploy DNS4ACME. This is the easiest way to deploy DNS4ACME as it supports all installation methods outlined below.
+
+---
+
 ## Deploying using a `Deployment` and a `LoadBalancer`
 
 The most standard way to deploy DNS4ACME is to run it as a [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/). In this case Kubernetes will run DNS4ACME inside a container and you will be able to expose the necessary TCP and UDP port 53 using a [Load Balancer](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer).
