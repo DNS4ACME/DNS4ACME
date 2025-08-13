@@ -154,7 +154,7 @@ func (p *provider) SetZone(_ context.Context, zoneName string, acmeChallengeAnsw
 	return nil
 }
 
-func (p *provider) SetZoneDebug(ctx context.Context, zoneName string, debug bool) error {
+func (p *provider) SetZoneDebug(_ context.Context, zoneName string, debug bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	zone, ok := p.zones[zoneName]
