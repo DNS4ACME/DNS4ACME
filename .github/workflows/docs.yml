@@ -4,6 +4,7 @@ on:
     branches:
       - main
     paths:
+      - backend/kubernetes/manifests/**
       - docs/**
       - mkdocs.yml
       - requirements.txt
