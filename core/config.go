@@ -1,9 +1,10 @@
 package core
 
 import (
-	"github.com/miekg/dns"
 	"log/slog"
 	"net/netip"
+
+	"github.com/miekg/dns"
 )
 
 type Config struct {
@@ -12,6 +13,9 @@ type Config struct {
 	// Nameservers contains the list of nameservers that should be returned as part of a SOA response. This field is
 	// required.
 	Nameservers []string `config:"nameservers" description:"A list of nameservers to return as part of the NS and SOA responses. (required)"`
+
+	// DebugZoneNotFound enables logging a debug message if a queried zone was not found.
+	DebugZoneNotFound bool `config:"debug-zone-not-found" description:"Debug if a zone queried was not found."`
 }
 
 func (c Config) Validate() error {
