@@ -2,13 +2,14 @@ package core
 
 import (
 	"context"
-	"github.com/dns4acme/dns4acme/backend"
-	"github.com/dns4acme/dns4acme/lang/E"
-	"github.com/miekg/dns"
 	"log/slog"
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/dns4acme/dns4acme/backend"
+	"github.com/dns4acme/dns4acme/lang/E"
+	"github.com/miekg/dns"
 )
 
 func New(config Config, backend backend.Provider, logger *slog.Logger) (Server, error) {
@@ -300,6 +301,9 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 	zoneData, err := r.getZone(ctx, question.Name)
 	if err != nil {
 		if E.Is(err, backend.ErrZoneNotInBackend) {
+			if r.config.DebugZoneNotFound {
+				logger.DebugContext(ctx, "Zone not found in backend.", E.ToSLogAttr(err)...)
+			}
 			response.SetRcode(msg, dns.RcodeRefused)
 			if sig := msg.IsTsig(); sig != nil {
 				response.Extra = append(response.Extra, sig)
@@ -446,6 +450,7 @@ func getZone(ctx context.Context, backendProvider backend.Provider, name string)
 	if !strings.HasPrefix(name, "_acme-challenge.") {
 		return backend.ProviderZoneResponse{}, backend.ErrZoneNotInBackend
 	}
+	name = strings.ToLower(name)
 	name = strings.TrimSuffix(name, ".")
 	name = strings.TrimPrefix(name, "_acme-challenge.")
 	zoneData, err := backendProvider.GetZone(ctx, name)
