@@ -297,7 +297,7 @@ func (r runningServer) serveQuery(ctx context.Context, writer dns.ResponseWriter
 		return
 	}
 	question := msg.Question[0]
-	logger = logger.With(slog.String("zone", question.Name))
+	logger = logger.With(slog.String("zone", strings.ToLower(question.Name)))
 	zoneData, err := r.getZone(ctx, question.Name)
 	if err != nil {
 		if E.Is(err, backend.ErrZoneNotInBackend) {
@@ -447,10 +447,10 @@ func (r runningServer) Stop(ctx context.Context) error {
 }
 
 func getZone(ctx context.Context, backendProvider backend.Provider, name string) (backend.ProviderZoneResponse, error) {
+	name = strings.ToLower(name)
 	if !strings.HasPrefix(name, "_acme-challenge.") {
 		return backend.ProviderZoneResponse{}, backend.ErrZoneNotInBackend
 	}
-	name = strings.ToLower(name)
 	name = strings.TrimSuffix(name, ".")
 	name = strings.TrimPrefix(name, "_acme-challenge.")
 	zoneData, err := backendProvider.GetZone(ctx, name)
