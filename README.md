@@ -2,6 +2,9 @@
 
 DNS4ACME is a lightweight DNS server that allows you to create DNS-verified certificates with ACME providers such a Let's Encrypt. DNS4ACME can help if you have an old-fashioned DNS server, and you cannot automatically create the DNS records needed for [DNS verification](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge).
 
+> [!WARNING]
+> DNS4ACME will be obsolete with the introduction of the [DNS-PERSIST-01 verification method](https://letsencrypt.org/2025/12/02/from-90-to-45#making-automation-easier-with-a-new-dns-challenge-type). Once it becomes generally available, DNS4ACME will be sunset and will no longer receive updates.
+
 > [!NOTE]
 > Typically, you do not need DNS4ACME. HTTP verification is *much* easier to set up than DNS4ACME. DNS4ACME is only useful if you need to use DNS verification (e.g. for wildcard certificates) *and* your main DNS server does not have an API.
 
